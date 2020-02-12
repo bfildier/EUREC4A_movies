@@ -14,22 +14,18 @@ if __name__ == "__main__":
 
     ##-- load arguments if present
 
-    parser = argparse.ArgumentParser(description="Builds a netCDF file suitable for computing radiative fluxes by merging a background sounding a sonde file from Aspen")
+    # Arguments to be used if want to change options while executing script
+    parser = argparse.ArgumentParser(description="Downloads GOES images for movie")
     parser.add_argument("--date", type=str, default=date_str,help="Flight date, YYY-MM-DD")
     parser.add_argument("--goes_varid",type=str,default=goes_varid,
         help='GOES variable ID')
     args = parser.parse_args()
-    # date_str = args.date
-
 
     # Define ouput path
     path_dir = os.path.join(goesdir,"%s/%s"%(args.goes_varid,args.date))
-    # dir = os.path.abspath(path_dir)
     os.makedirs(path_dir,exist_ok=True)
-    # if not os.path.exists(dir):
-        # os.mkdir(dir)
-    
 
+    # Define dates
     start_date = datetime.datetime.strptime(args.date+start_time,"%Y-%m-%d%H:%M")
     end_date = datetime.datetime.strptime(args.date+end_time,"%Y-%m-%d%H:%M")
     delta = datetime.timedelta(minutes=10)
