@@ -58,10 +58,13 @@ def loadImage(dtime,verbose=False):
 def loadSondes(dtime):
     """Load sondes for the day as a list of xarrays"""
     
-    allsondefiles = glob.glob(os.path.join(sondedir,goes_varid,
+    allsondefiles = glob.glob(os.path.join(sondedir,
                                        dtime.strftime('%Y%m%d'),
                                        'AVAPS_Dropsondes/processed/*_PQC.nc'))
     allsondefiles.sort()
+
+    print(len(allsondefiles),'sondes launched that day')
+    print()
     
     allsondes = []
     
@@ -184,22 +187,6 @@ def showTime(ax,dtime):
 
     return t
 
-def updateText(t,pos='',text='',col='',alpha=''):
-    """Update text displayed on image in text object t"""
-
-    t.set_text(text)
-    t.set_position(pos)
-    t.set_color(col)
-    t.set_alpha(alpha)
-
-def updateSondeObj(obj,pos=(0,0),fc='w',ec='w',alpha=1.):
-    """Update patch properties for patch object obj"""
-
-    obj.center = pos
-    obj.set_fc(fc)
-    obj.set_ec(ec)
-    obj.set_alpha(alpha)
-
 def initFigure(goes_im):
 
     fig = plt.figure()
@@ -256,7 +243,24 @@ def initChangingObjects(ax,n_sondeobj=30):
 
     return t_main, time_objs, sonde_objs
 
+def updateText(t,pos='',text='',col='',alpha=''):
+    """Update text displayed on image in text object t"""
+
+    t.set_text(text)
+    t.set_position(pos)
+    t.set_color(col)
+    t.set_alpha(alpha)
+
+def updateSondeObj(obj,pos=(0,0),fc='w',ec='w',alpha=1.):
+    """Update patch (i.e. sonde) properties for patch object obj"""
+
+    obj.center = pos
+    obj.set_fc(fc)
+    obj.set_ec(ec)
+    obj.set_alpha(alpha)
+
 def makeMovie(verbose=False):
+    """Generate animation"""
 
     n_sondeobj = 30
 
@@ -343,16 +347,16 @@ if __name__ == "__main__":
     
     ##-- import movie parameters
 
+    # Specified beforehand
     from movie_params import *
 
-    parser = argparse.ArgumentParser(description="Builds a netCDF file suitable for computing radiative fluxes by merging a background sounding a sonde file from Aspen")
+    # Arguments to be used if want to change options while executing script
+    parser = argparse.ArgumentParser(description="Generates movie showing HALO dropsondes over GOES images")
     parser.add_argument("--date", type=str, default=date_str,help="Flight date, YYY-MM-DD")
     parser.add_argument("--goes_varid",type=str,default=goes_varid,
         help='GOES variable ID')
     args = parser.parse_args()
     date_str = args.date
-
-    print(args.goes_varid)
 
     ##-- movie
 
