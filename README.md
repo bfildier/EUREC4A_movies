@@ -1,4 +1,4 @@
-How to generate movie with GOES image and HALO dropsondes
+To generate movie with GOES image and HALO dropsondes:
 
 1. Edit scripts/movie_params.py
 
