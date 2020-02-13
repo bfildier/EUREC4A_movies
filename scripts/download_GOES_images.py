@@ -1,4 +1,5 @@
 # by Ludovic Touze-Peiffer
+# thanks to Hauke Schulz for showing his initial method
 
 import urllib.request
 import datetime
