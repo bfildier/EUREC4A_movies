@@ -5,9 +5,10 @@ import matplotlib.pyplot as plt
 goes_varid = 'GOES-East_ABI_Band2_Red_Visible_1km'
 
 # I/O directories
-sondedir = '/Users/bfildier/Data/EUREC4A/Measurements/HALO'
-goesdir = '/Users/bfildier/Code/analyses/EUREC4A/EUREC4A_movies/images/GOES'
-outputdir = '/Users/bfildier/Code/analyses/EUREC4A/EUREC4A_movies/movies'
+sondedir="/run/media/ludo/DATA/google-drive/Thèse/EUREC4a/Data/aeris/eurec4a-data/AIRCRAFT/HALO/AVAP-DROPSONDES/2020"
+#'/Users/bfildier/Data/EUREC4A/Measurements/HALO'
+goesdir ='/run/media/ludo/DATA/google-drive/Thèse/EUREC4a/github/EUREC4A_movies/images/GOES'
+outputdir ='/run/media/ludo/DATA/google-drive/Thèse/EUREC4a/github/EUREC4A_movies/movies'
 
 # aircraft altitude
 altmax = 11000 # (m)

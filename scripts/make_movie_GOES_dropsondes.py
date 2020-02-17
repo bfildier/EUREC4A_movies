@@ -58,9 +58,9 @@ def loadImage(dtime,verbose=False):
 def loadSondes(dtime):
     """Load sondes for the day as a list of xarrays"""
     
-    allsondefiles = glob.glob(os.path.join(sondedir,
+    allsondefiles = glob.glob(os.path.join(sondedir,"RF*" +					
                                        dtime.strftime('%Y%m%d'),
-                                       'AVAPS_Dropsondes/processed/*_PQC.nc'))
+                                      '*_PQC.nc'))
     allsondefiles.sort()
 
     print(len(allsondefiles),'sondes launched that day')

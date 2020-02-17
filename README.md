@@ -1,8 +1,15 @@
 To generate movie with GOES image and HALO dropsondes:
 
-1. Edit scripts/movie_params.py
 
-. sondedir: path to the directory storing dropsonde data. The directory tree is the same as the NAS system used in the ops center during the campaign.
+# 1. Download dropsondes data on AERIS 
+
+. use the following command
+
+wget -r -nH --no-parent https://observations.ipsl.fr/aeris/eurec4a-data/AIRCRAFT/HALO/AVAP-DROPSONDES/2020/
+
+# 2. Edit scripts/movie_params.py
+
+. sondedir: path to the directory storing dropsonde data. The directory tree is the same as the AERIS system.
 
 . goesdir: where you want to store GOES images. 
 
@@ -12,5 +19,6 @@ To generate movie with GOES image and HALO dropsondes:
 
 . any other parameter you want to change.
 
-2. Run python scripts/download_GOES_images.py to download images from Worldview.
-3. Run python scripts/make_movie_GOES_dropsondes.py to generate movie.
+# 3. Run python scripts/download_GOES_images.py to download images from Worldview.
+
+# 4. Run python scripts/make_movie_GOES_dropsondes.py to generate movie.
