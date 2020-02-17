@@ -33,7 +33,7 @@ def loadImage(dtime,verbose=False):
         
     minutes = dtime.minute
     
-    # pick time rounded to closest 10mn increment
+    # pick time rounded to closest 9mn increment
     hr_goes = dtime.hour
     min_goes = round(dtime.minute/10)*10 # round min to closest 10mn
     hr_goes += int((min_goes/60)) # increment if round to next hour
@@ -69,9 +69,13 @@ def loadSondes(dtime):
     allsondes = []
     
     for filepath in allsondefiles:
-        
-        allsondes.append(xr.open_dataset(filepath).dropna(dim='time',subset=['time']).swap_dims({'time':'alt'}).reset_coords().dropna(dim='alt',subset=['alt','time','lat','lon'],
-                            how='any'))
+       
+        sonde =  xr.open_dataset(filepath).dropna(dim='time',\
+                                                  subset=['time']).swap_dims({'time':'alt'}).reset_coords().\
+                                                  dropna(dim='alt',subset=['alt','time','lat','lon'],how='any')
+ 
+        if(sonde.time.size > 15):
+            allsondes.append(sonde)
     
     return allsondes
 
@@ -133,8 +137,10 @@ def getSondeObj(dtime,sonde,scalarMap,col_fading='darkorange',gettime=True):
 
     # earlier get index in sonde lifetime that matches current time
     dtime_str = dtime.strftime('%Y-%m-%dT%H:%M')
+
     t_inds = np.arange(0,sonde.time.size,int(sonde.time.size/15)) # use time subindices to speed up the code
-    sonde_times = np.array([str(sonde.time[t_inds[i]].values)[:16] for i in range(len(t_inds))])
+    sonde_times = np.array([str(sonde.time[t_inds[i]].values)[:16] for i in range(len(t_inds))]) 
+    
     matching_times = np.where(sonde_times == dtime_str)[0]
 
     if matching_times.size == 0: # no matching time, sonde on the ground
@@ -304,6 +310,8 @@ def makeMovie(verbose=False):
         # update sondes
         for i_sonde,sonde in zip(range(n_sondeobj),getMatchingSondes(allsondes,dtime,dt_fade,nfill=n_sondeobj)):
             
+            
+            # sonde = sondes[i_sonde]
             # sonde = sondes[i_sonde]
             launch_time = getLaunchTime(sonde)
             sonde_obj = getSondeObj(dtime,sonde,scalarMap,col_fading=col_bottom)
@@ -317,11 +325,12 @@ def makeMovie(verbose=False):
             # update time
             lon_sonde,lat_sonde = sonde_obj.center
             updateText(time_objs[i_sonde],
-                        pos=(lon_sonde+0.05,lat_sonde+0.05),
+                      pos=(lon_sonde+0.05,lat_sonde+0.05),
                         text=launch_time,
                         col=sonde_obj.get_fc(),
                         alpha=sonde_obj.get_alpha())
         
+       
         return [im]
 
     
