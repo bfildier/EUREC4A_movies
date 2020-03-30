@@ -3,33 +3,30 @@
 # by Ludovic Touze-Peiffer
 
 
-daylist=(2020-01-22 2020-01-24 2020-01-26 2020-01-28 2020-01-30 2020-01-31 2020-02-02 2020-02-05 2020-02-07 2020-02-09 2020-02-11 2020-02-13)
+#daylist=(2020-01-24 2020-02-02)
+#daylist=(2020-01-22 2020-01-23 2020-01-24 2020-01-26 2020-01-28 2020-01-30 2020-01-31 2020-02-02 2020-02-05 2020-02-07 2020-02-09 2020-02-10 2020-02-11 2020-02-13 2020-02-15)
+#daylist=(2020-01-15 2020-01-17 2020-01-19 2020-01-22 2020-01-23 2020-01-24 2020-01-26 2020-01-28 2020-01-30 2020-01-31 2020-02-02 2020-02-03 2020-02-04 2020-02-05 2020-02-07 2020-02-09 2020-02-10 2020-02-11 2020-02-13 2020-02-15)
+
+#daylist=(2020-02-02)
+
+#daylist=(2020-02-10 2020-02-15)
+#daylist=(2020-02-09 2020-02-10 2020-02-11 2020-02-13 2020-02-15)
+daylist=(2020-01-22 2020-01-24 2020-01-26 2020-01-28 2020-01-30 2020-01-31 2020-02-02 2020-02-05 2020-02-07 2020-02-09 2020-02-10 2020-02-11 2020-02-13 2020-02-15)
+#daylist=(2020-02-02)
 
 wdir=${PWD%/*}
-satellite=GOES-East_ABI_Band2_Red_Visible_1km
-idir=${wdir}/images/GOES/$satellite
-odir=${wdir}/movies/$satellite
+len=${#daylist[@]} ## Use bash for loop
 
 
-#download GOES images
-for iday in {0..11} ; do
+for (( iday=0; iday<$len; iday++)); do
 
 	day="${daylist[iday]}" 
 	echo ${day}
-	idir_day=${idir}/${day}
-	
-	#Download GOES image
-	if [ -z "$(ls -A ${idir_day})" ]; then
-		python download_GOES_images.py --date=${day} 
-	else
-		echo $idir_day" already exists"
-	fi
+
+	#download GOES images
+#	python download_GOES_images.py --date=${day} 
 	
 	#Make movie
-	if [ -z "$(ls -A ${odir}/*${day}*)" ]; then
-		python make_movie_GOES_dropsondes.py --date=${day} 
-	else
-		echo "movie "${idir_day}" already exists"
-	fi
+	python make_movie_GOES_all_sondes_cold_pools.py --date=${day} 
 
 done
