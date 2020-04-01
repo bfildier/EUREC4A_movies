@@ -29,7 +29,7 @@ def loadImage(dtime,verbose=False):
     - dtime: datetime object
     """
     
-    date_str = dtime.strftime('%Y-%m-%d')
+    date_str = dtime.strftime('%Y%m%d')
         
     minutes = dtime.minute
     
@@ -45,10 +45,11 @@ def loadImage(dtime,verbose=False):
                                    minute=min_goes)
     
     # path of image
-    nameroot = dtime_goes.strftime('%Y-%m-%dT%H:%M:00Z')
+    nameroot = dtime_goes.strftime('%Y%m%d_%H%M')
     
-    # path of image
-    fullpath = os.path.join(goesdir,goes_varid,nameroot[:10],nameroot+'.jpg')
+    path_dir = os.path.join(goesdir,date_str)
+    fullpath = glob.glob(path_dir+"/GOES16*"+nameroot+'.jpg')[0]
+   
     if verbose:
         print('load image %s.jpg'%nameroot)
     
@@ -114,16 +115,9 @@ def getMatchingSondes(allsondes,dtime,dt_fade,nfill=None,verbose=False):
     else:
         return sondes[:nfill]
 
-def initSondeObj(sonde):
+def initSondeObj():
     """Creates a patch to be displayed on the figure, and updated at each time step"""
-    cloud_flag = sonde.cloud_flag.values
-    if (cloud_flag == 0):
-        return Circle((lon_center,lat_center),0.03,linewidth=2,ec=ec,fc=fc,alpha=alpha)
-    else:
-        return Wedge((lon_center,lat_center),0.03,0,180,linewidth=2,ec=ec,fc=fc,alpha=alpha)
-
-
-    
+   
     return Circle((lon_center,lat_center),0.03,linewidth=2,ec='w',fc='w',alpha=0)
 
 def getSondeObj(dtime,sonde,scalarMap,col_fading='darkorange',gettime=True):
@@ -133,7 +127,7 @@ def getSondeObj(dtime,sonde,scalarMap,col_fading='darkorange',gettime=True):
     ## default value
     if sonde is None:
      #   print("no sonde")
-        return initSondeObj(sonde)
+        return initSondeObj()
     
     ## otherwise define patch with correct position, color and transparency
 
@@ -239,13 +233,13 @@ def initFigure(goes_im):
 
     return fig, ax, im
 
-def initChangingObjects(ax,n_sondeobj=30,allsondes):
+def initChangingObjects(ax,allsondes,n_sondeobj=30):
 
     # create and show sonde objects at start time
     sonde_objs = []
     time_objs = []
     for i_sonde in range(n_sondeobj):
-        sonde_obj = initSondeObj(sonde)
+        sonde_obj = initSondeObj()
         # show
         ax.add_patch(sonde_obj)
         time_obj = ax.text(lon_center,lat_center,'',
@@ -299,7 +293,7 @@ def makeMovie(verbose=False):
     # figure
     fig, ax, im = initFigure(goes_im)
     # sondes and times
-    t_main, time_objs, sonde_objs = initChangingObjects(ax,n_sondeobj=n_sondeobj,allsondes)
+    t_main, time_objs, sonde_objs = initChangingObjects(ax,allsondes,n_sondeobj=n_sondeobj)
 
     ##-- define movie loop
 
@@ -352,10 +346,9 @@ def makeMovie(verbose=False):
     
     # save
 
-    os.makedirs(os.path.join(outputdir,goes_varid),exist_ok=True)
+    os.makedirs(outputdir,exist_ok=True)
 
-    moviefile = os.path.join(outputdir,goes_varid,
-        '%s_%s_%s.mp4'%(start.strftime('%Y-%m-%d'),start.strftime('%H:%M'),end.strftime('%H:%M')))
+    moviefile = os.path.join(outputdir,'%s_%s_%s.mp4'%(start.strftime('%Y-%m-%d'),start.strftime('%H:%M'),end.strftime('%H:%M')))
     ani.save(moviefile,writer=writer,dpi=dpi)
     
     plt.close()
@@ -372,17 +365,15 @@ if __name__ == "__main__":
 
     # Arguments to be used if want to change options while executing script
     parser = argparse.ArgumentParser(description="Generates movie showing HALO dropsondes over GOES images")
-    parser.add_argument("--date", type=str, default=date_str,help="Flight date, YYY-MM-DD")
-    parser.add_argument("--goes_varid",type=str,default=goes_varid,
-        help='GOES variable ID')
+    parser.add_argument("-d","--date", required=True, default=None,help="Date, YYYMMDD")
     args = parser.parse_args()
-    date_str = args.date
+    date_str = str(args.date)
 
     ##-- movie
 
     # define time objects
-    start = datetime.datetime.strptime(date_str+start_time,'%Y-%m-%d%H:%M')
-    end = datetime.datetime.strptime(date_str+end_time,'%Y-%m-%d%H:%M')
+    start = datetime.datetime.strptime(date_str+start_time,'%Y%m%d%H:%M')
+    end = datetime.datetime.strptime(date_str+end_time,'%Y%m%d%H:%M')
     dt = datetime.timedelta(seconds=delta_t)
     Nt = int((end-start).seconds/delta_t)
 

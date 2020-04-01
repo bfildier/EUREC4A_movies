@@ -1,14 +1,13 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-# GOES variable
-goes_varid = 'GOES-East_ABI_Band2_Red_Visible_1km'
+
 
 # I/O directories
-sondedir="/run/media/ludo/DATA/google-drive/Thèse/EUREC4a/Data/aeris/eurec4a-data/AIRCRAFT/HALO/AVAP-DROPSONDES/2020"
+sondedir="/run/media/ludo/DATA/google-drive/Thèse/EUREC4a/github/Input/Dropsondes/"
 #'/Users/bfildier/Data/EUREC4A/Measurements/HALO'
-goesdir ='/run/media/ludo/DATA/google-drive/Thèse/EUREC4a/github/EUREC4A_movies/images/GOES'
-outputdir ='/run/media/ludo/DATA/google-drive/Thèse/EUREC4a/github/EUREC4A_movies/movies'
+goesdir ='/run/media/ludo/DATA/google-drive/Thèse/EUREC4a/github/EUREC4A_movies/images/GOES16'
+outputdir ='/run/media/ludo/DATA/google-drive/Thèse/EUREC4a/github/EUREC4A_movies/movies/'
 
 # aircraft altitude
 altmax = 11000 # (m)
@@ -27,9 +26,12 @@ width = 1125
 height = int(width*dlat/dlon)
 
 # time range
-date_str = "2020-01-24"
-start_time = "10:00"
-end_time = "22:00"
+
+start_time = "00:00"
+end_time = "23:58"
+
+#start_time = "00:00"
+#end_time = "23:51"
 
 # movie format
 dpi = 150

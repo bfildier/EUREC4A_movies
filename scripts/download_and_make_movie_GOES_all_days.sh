@@ -3,30 +3,51 @@
 # by Ludovic Touze-Peiffer
 
 
-#daylist=(2020-01-24 2020-02-02)
-#daylist=(2020-01-22 2020-01-23 2020-01-24 2020-01-26 2020-01-28 2020-01-30 2020-01-31 2020-02-02 2020-02-05 2020-02-07 2020-02-09 2020-02-10 2020-02-11 2020-02-13 2020-02-15)
-#daylist=(2020-01-15 2020-01-17 2020-01-19 2020-01-22 2020-01-23 2020-01-24 2020-01-26 2020-01-28 2020-01-30 2020-01-31 2020-02-02 2020-02-03 2020-02-04 2020-02-05 2020-02-07 2020-02-09 2020-02-10 2020-02-11 2020-02-13 2020-02-15)
-
-#daylist=(2020-02-02)
-
-#daylist=(2020-02-10 2020-02-15)
-#daylist=(2020-02-09 2020-02-10 2020-02-11 2020-02-13 2020-02-15)
-daylist=(2020-01-22 2020-01-24 2020-01-26 2020-01-28 2020-01-30 2020-01-31 2020-02-02 2020-02-05 2020-02-07 2020-02-09 2020-02-10 2020-02-11 2020-02-13 2020-02-15)
-#daylist=(2020-02-02)
-
+daylist=(20200202)
 wdir=${PWD%/*}
 len=${#daylist[@]} ## Use bash for loop
-
+start_day=16
+end_day=21
+mod_min=10
 
 for (( iday=0; iday<$len; iday++)); do
 
 	day="${daylist[iday]}" 
 	echo ${day}
 
-	#download GOES images
-#	python download_GOES_images.py --date=${day} 
+#Download GOES data in netcdf format
+
+#Download IR pictures during the night
+	channel=13
+	odir=$wdir/satellite_data/GOES16/$day/channel$channel
+	mkdir -p $odir
+	for (( hour=0; hour<$start_day; hour++)); do		
+		python download_GOES16.py -d $day -k $channel -o ${odir}/GOES16_{channel}_{N1}N-{N2}N_{E1}E-{E2}E_%Y%m%d_%H%M.nc -t $hour $mod_min
+	done
+
+
+#Download IR pictures during the day
+	channel=02
+	odir=$wdir/satellite_data/GOES16/$day/channel$channel
+	mkdir -p $odir
+	for (( hour=$start_day; hour<$end_day; hour++)); do		
+		python download_GOES16.py -d $day -k $channel -o ${odir}/GOES16_{channel}_{N1}N-{N2}N_{E1}E-{E2}E_%Y%m%d_%H%M.nc -t $hour $mod_min
+	done
 	
-	#Make movie
-	python make_movie_GOES_all_sondes_cold_pools.py --date=${day} 
+
+#Download IR pictures during the night
+	channel=13
+	odir=$wdir/satellite_data/GOES16/$day/channel$channel
+	for (( hour=$end_day; hour<24; hour++)); do	
+		python download_GOES16.py -d $day -k $channel -o ${odir}/GOES16_{channel}_{N1}N-{N2}N_{E1}E-{E2}E_%Y%m%d_%H%M.nc -t $hour $mod_min
+	done
+
+#Make figures from GOES data
+
+	python make_figure_from_data.py -d $day	
+	
+#Make movie
+
+	python make_movie_GOES_all_sondes.py --date=${day} 
 
 done
