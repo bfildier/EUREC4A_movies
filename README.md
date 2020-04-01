@@ -7,6 +7,8 @@ To generate movie with GOES image and HALO dropsondes:
 
 . any other parameter you want to change.
 
-# 2. Select the day you want to run in scripts/download_and_make_movie_GOES_all_days.sh
+# 2. Select the day(s)
+
+. in scripts/download_and_make_movie_GOES_all_days.sh
 
 # 3. Run the script
