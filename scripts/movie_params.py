@@ -9,6 +9,16 @@ meteordir="../../EUREC4A_cold_pools/input/Meteor"
 #'/Users/bfildier/Data/EUREC4A/Measurements/HALO'
 goesdir ='../images/GOES16'
 outputdir ='../movies/'
+## Ludo
+#sondedir="/run/media/ludo/DATA/google-drive/Thèse/EUREC4a/github/Input/Dropsondes/"
+#'/Users/bfildier/Data/EUREC4A/Measurements/HALO'
+#goesdir ='/run/media/ludo/DATA/google-drive/Thèse/EUREC4a/github/EUREC4A_movies/images/GOES16'
+#outputdir ='/run/media/ludo/DATA/google-drive/Thèse/EUREC4a/github/EUREC4A_movies/movies/'
+
+## Ben
+sondedir='/Users/bfildier/Data/EUREC4A/merged/sondes/'
+goesdir='/Users/bfildier/Code/analyses/EUREC4A/EUREC4A_movies/images/GOES16'
+outputdir='/Users/bfildier/Code/analyses/EUREC4A/EUREC4A_movies/movies/'
 
 # aircraft altitude
 altmax = 11000 # (m)
