@@ -11,6 +11,7 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 import argparse
 # Load data
 import xarray as xr
+import pandas as pd
 from PIL import Image
 # Display
 import matplotlib as mpl
@@ -20,7 +21,6 @@ import matplotlib.ticker as ticker
 from matplotlib.patches import Circle
 import matplotlib.colors as colors
 import matplotlib.cm as cmx
-
 
 def loadImage(dtime,verbose=False):
     
@@ -58,25 +58,16 @@ def loadImage(dtime,verbose=False):
 def loadSondes(dtime):
     """Load sondes for the day as a list of xarrays"""
     
-    allsondefiles = glob.glob(os.path.join(sondedir,"RF*" +					
-                                       dtime.strftime('%Y%m%d'),
-                                      '*_PQC.nc'))
-    allsondefiles.sort()
-
-    print(len(allsondefiles),'sondes launched that day')
-    print()
+    path_allsondes = os.path.join(sondedir,"all_sondes.nc")
     
-    allsondes = []
-    
-    for filepath in allsondefiles:
-       
-        sonde =  xr.open_dataset(filepath).dropna(dim='time',\
-                                                  subset=['time']).swap_dims({'time':'alt'}).reset_coords().\
-                                                  dropna(dim='alt',subset=['alt','time','lat','lon'],how='any')
- 
-        if(sonde.time.size > 15):
-            allsondes.append(sonde)
-    
+    print(path_allsondes)
+    allsondes = xr.open_dataset(path_allsondes).dropna(dim="launch_time", subset=["time"], thresh=15)
+                               
+    str_dtime = dtime.strftime('%Y%m%d')
+     
+    #all sondes for the specific day                           
+    allsondes = allsondes.sel(launch_time = str_dtime)
+                                 
     return allsondes
 
 def getMatchingSondes(allsondes,dtime,dt_fade,nfill=None,verbose=False):
@@ -97,8 +88,11 @@ def getMatchingSondes(allsondes,dtime,dt_fade,nfill=None,verbose=False):
     
     # window for fading out sonde display
     delta_fade = datetime.timedelta(minutes=dt_fade)
+   
+    number_sondes = len(allsondes.launch_time)
     
-    for sonde in allsondes:
+    for i in range(number_sondes):
+        sonde = allsondes.isel(launch_time=i).dropna(dim="gpsalt",subset=["time"])
         
         launch_time = datetime.datetime.strptime(str(sonde.launch_time.values)[:16],
                                                 '%Y-%m-%dT%H:%M')
@@ -131,6 +125,7 @@ def getSondeObj(dtime,sonde,scalarMap,col_fading='darkorange',gettime=True):
     
     ## default value
     if sonde is None:
+     #   print("no sonde")
         return initSondeObj()
     
     ## otherwise define patch with correct position, color and transparency
@@ -139,10 +134,13 @@ def getSondeObj(dtime,sonde,scalarMap,col_fading='darkorange',gettime=True):
     dtime_str = dtime.strftime('%Y-%m-%dT%H:%M')
 
     t_inds = np.arange(0,sonde.time.size,int(sonde.time.size/15)) # use time subindices to speed up the code
-    sonde_times = np.array([str(sonde.time[t_inds[i]].values)[:16] for i in range(len(t_inds))]) 
+       
+    sonde_times = np.array([datetime.datetime.utcfromtimestamp(sonde.time[t_inds[i]].values).strftime("%Y-%m-%dT%H:%M")\
+                             for i in range(len(t_inds))]) 
+    
     
     matching_times = np.where(sonde_times == dtime_str)[0]
-
+    
     if matching_times.size == 0: # no matching time, sonde on the ground
         falling = False
         i_dtime = 0
@@ -154,9 +152,12 @@ def getSondeObj(dtime,sonde,scalarMap,col_fading='darkorange',gettime=True):
     lon_sonde = sonde.lon.values[i_dtime]
     lat_sonde = sonde.lat.values[i_dtime]
     alt_sonde = sonde.alt.values[i_dtime]
-    time_sonde = datetime.datetime.strptime(str(sonde.time.values[i_dtime])[:16],'%Y-%m-%dT%H:%M')
+    time_sonde = datetime.datetime.utcfromtimestamp(sonde.time.values[i_dtime])
+   # print("time_sonde" + str(time_sonde))
     launch_time = datetime.datetime.strptime(str(sonde.launch_time.values)[:16],'%Y-%m-%dT%H:%M')
-    last_time = datetime.datetime.strptime(str(sonde.time.values[0])[:16],'%Y-%m-%dT%H:%M')
+   # print("launch_time" +str(launch_time))
+    last_time = datetime.datetime.utcfromtimestamp(sonde.time.values[0])
+  #  print("last_time" + str(last_time))
     
     # choose color based on height
     fc = ec = scalarMap.to_rgba(alt_sonde)
@@ -332,9 +333,9 @@ def makeMovie(verbose=False):
         
        
         return [im]
-
     
     ##-- make movie
+   
     
     # create
     ani = animation.FuncAnimation(fig,updateImage,Nt,interval=speed_factor/delta_t,blit=True)
@@ -343,6 +344,7 @@ def makeMovie(verbose=False):
     # save
 
     os.makedirs(os.path.join(outputdir,goes_varid),exist_ok=True)
+
     moviefile = os.path.join(outputdir,goes_varid,
         '%s_%s_%s.mp4'%(start.strftime('%Y-%m-%d'),start.strftime('%H:%M'),end.strftime('%H:%M')))
     ani.save(moviefile,writer=writer,dpi=dpi)

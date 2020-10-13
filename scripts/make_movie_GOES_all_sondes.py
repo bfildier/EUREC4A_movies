@@ -18,7 +18,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import matplotlib.ticker as ticker
-from matplotlib.patches import Circle, Wedge
+from matplotlib.patches import Circle
 import matplotlib.colors as colors
 import matplotlib.cm as cmx
 
@@ -70,6 +70,8 @@ def loadSondes(dtime):
     allsondes = allsondes.sel(launch_time = str_dtime)
                                  
     return allsondes
+
+
 
 def getMatchingSondes(allsondes,dtime,dt_fade,nfill=None,verbose=False):
     

@@ -2,12 +2,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-
 # I/O directories
-sondedir="/run/media/ludo/DATA/google-drive/Thèse/EUREC4a/github/Input/Dropsondes/"
+#sondedir="/run/media/ludo/DATA/google-drive/Thèse/EUREC4a/github/Input/Dropsondes/"
+sondedir="/run/media/ludo/DATA/google-drive/Thèse/EUREC4a/github/Input/Products/"
+meteordir="../../EUREC4A_cold_pools/input/Meteor"
 #'/Users/bfildier/Data/EUREC4A/Measurements/HALO'
-goesdir ='/run/media/ludo/DATA/google-drive/Thèse/EUREC4a/github/EUREC4A_movies/images/GOES16'
-outputdir ='/run/media/ludo/DATA/google-drive/Thèse/EUREC4a/github/EUREC4A_movies/movies/'
+goesdir ='../images/GOES16'
+outputdir ='../movies/'
 
 # aircraft altitude
 altmax = 11000 # (m)
@@ -18,20 +19,21 @@ lon_pt_circle, lat_pt_circle = -57.245,14.1903
 r_circle = np.sqrt((lon_pt_circle-lon_center)**2+(lat_pt_circle-lat_center)**2)
 
 # Image box
-lonmin,lonmax = -60,-55
+lonmin,lonmax = -60,-49
 dlon = lonmin-lonmax
-latmin,latmax = 11.5,15
+latmin,latmax = 6,17
 dlat = latmin-latmax
 width = 1125
 height = int(width*dlat/dlon)
 
 # time range
 
-start_time = "00:00"
-end_time = "23:58"
+#start_time = "11:00"
+#end_time = "12:00"
 
-#start_time = "00:00"
-#end_time = "23:51"
+start_time = "00:00"
+end_time = "23:59"
+
 
 # movie format
 dpi = 150
