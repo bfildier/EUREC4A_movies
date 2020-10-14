@@ -4,10 +4,10 @@ import matplotlib.pyplot as plt
 
 # I/O directories
 #sondedir="/run/media/ludo/DATA/google-drive/Thèse/EUREC4a/github/Input/Dropsondes/"
-sondedir="/run/media/ludo/DATA/google-drive/Thèse/EUREC4a/github/Input/Products/"
-meteordir="../../EUREC4A_cold_pools/input/Meteor"
+sondedir="/media/ludo/DATA/google-drive/Thèse/EUREC4a/github/Input/Products/"
+#meteordir="../../EUREC4A_cold_pools/input/Meteor"
 #'/Users/bfildier/Data/EUREC4A/Measurements/HALO'
-goesdir ='../images/GOES16'
+goesdir ='../images/ciclad'
 outputdir ='../movies/'
 ## Ludo
 #sondedir="/run/media/ludo/DATA/google-drive/Thèse/EUREC4a/github/Input/Dropsondes/"
@@ -16,9 +16,9 @@ outputdir ='../movies/'
 #outputdir ='/run/media/ludo/DATA/google-drive/Thèse/EUREC4a/github/EUREC4A_movies/movies/'
 
 ## Ben
-sondedir='/Users/bfildier/Data/EUREC4A/merged/sondes/'
-goesdir='/Users/bfildier/Code/analyses/EUREC4A/EUREC4A_movies/images/GOES16'
-outputdir='/Users/bfildier/Code/analyses/EUREC4A/EUREC4A_movies/movies/'
+#sondedir='/Users/bfildier/Data/EUREC4A/merged/sondes/'
+#goesdir='/Users/bfildier/Code/analyses/EUREC4A/EUREC4A_movies/images/GOES16'
+#outputdir='/Users/bfildier/Code/analyses/EUREC4A/EUREC4A_movies/movies/'
 
 # aircraft altitude
 altmax = 11000 # (m)
@@ -29,9 +29,9 @@ lon_pt_circle, lat_pt_circle = -57.245,14.1903
 r_circle = np.sqrt((lon_pt_circle-lon_center)**2+(lat_pt_circle-lat_center)**2)
 
 # Image box
-lonmin,lonmax = -60,-49
+lonmin,lonmax = -60,-55
 dlon = lonmin-lonmax
-latmin,latmax = 6,17
+latmin,latmax = 11.5,15
 dlat = latmin-latmax
 width = 1125
 height = int(width*dlat/dlon)

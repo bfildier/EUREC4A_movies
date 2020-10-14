@@ -55,8 +55,11 @@ def make_figure(path_file):
     os.makedirs(output_dir, exist_ok=True)    
     
     output_file = os.path.split(path_file)[1]
-    output_file = os.path.splitext(output_file)[0]+'.jpg'
-    output_file = output_file.replace("_BARBADOS-2KM-FD.level2", "")    
+    output_file = os.path.splitext(output_file)[0]
+    output_file = output_file.replace("_BARBADOS-2KM-FD.level2", "")   
+    output_file = output_file[:-3]+'.jpg'
+    output_file = output_file.replace("clavrx_OR_ABI-L1b-RadF-M6C01_G16", "GOES16")    
+    
     output_file = os.path.join(output_dir, output_file)
     
     fig.savefig(output_file)
