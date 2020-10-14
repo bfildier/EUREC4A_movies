@@ -7,10 +7,11 @@ import glob, os
 import matplotlib.ticker as ticker
 import argparse
 
-def get_files(year=2020, month=1, day=22):
+def get_files(year=2020, month=2, day=5):
     
     str_month="{0:0=2d}".format(month)
-    str_day=str(year)+"_"+str_month+"_"+str(day)
+    str_day="{0:0=2d}".format(day)
+    str_day=str(year)+"_"+str_month+"_"+str_day
     list_files=[]
     path = "../satellite_data/ciclad/"
     path_dir = os.path.join(path, str_day)
@@ -71,8 +72,8 @@ if __name__ == "__main__":
     # Arguments to be used if want to change options while executing script
     parser = argparse.ArgumentParser(description="Transform ciclad .nc data into satellite images")
     parser.add_argument("-y","--year", default=2020,help="Year, YYYY")
-    parser.add_argument("-m","--month", default=1, help="Month, M")
-    parser.add_argument("-d","--day", default=22, help="Day, D")
+    parser.add_argument("-m","--month", default=2, help="Month, M")
+    parser.add_argument("-d","--day", default=5, help="Day, D")
     args = parser.parse_args()
     year = args.year
     month = args.month
