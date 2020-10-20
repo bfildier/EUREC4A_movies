@@ -9,6 +9,7 @@ sondedir="/media/ludo/DATA/google-drive/Thèse/EUREC4a/github/Input/Products/"
 #'/Users/bfildier/Data/EUREC4A/Measurements/HALO'
 goesdir ='../images/ciclad'
 outputdir ='../movies/'
+platformdir = "/media/ludo/DATA/google-drive/Thèse/EUREC4a/github/Input/"
 ## Ludo
 #sondedir="/run/media/ludo/DATA/google-drive/Thèse/EUREC4a/github/Input/Dropsondes/"
 #'/Users/bfildier/Data/EUREC4A/Measurements/HALO'
