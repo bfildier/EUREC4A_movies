@@ -24,42 +24,34 @@ def get_files(year=2020, month=2, day=5):
     
     return list_files
 
-def make_figure(path_file):
+def make_figure(path_file="../../Input/GOES_M2_8N-18N-62W-50W_20200202_1721.nc", channel=13, date=20200202):
     
     # path = os.path.join(path_dir,"clavrx_goes16_2020_022_2348_BARBADOS-2KM-FD.level2.nc")
-    file = xr.open_dataset(path_file)
-    file = file.where(file.scan_lines_along_track_direction < 498, drop=True)
-
-    if(file.START_TIME < 11 or file.START_TIME > 21):
-        colormap="Greys"
-        channel = "temp_11_0um_nom"
-    else:
-        colormap="Greys_r"
-        channel = "refl_0_65um_nom"
+    str_channel="{0:0=2d}".format(channel)
+    file = xr.open_dataset(path_file).isel(time=0) 
+    lon=file["lon"]
+    lat=file["lat"]
     
+    if (channel==2):
+        colormap="Greys_r"
+    else:
+        colormap="Greys"
     
     fig, ax = plt.subplots(1, 1)
 
     fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=None, hspace=None)
-
    
-    # ax.pcolormesh((file["refl_2_10um_nom"].values)**(1/6), cmap=colormap)
-    alpha=1/6
-    ax.pcolormesh(file["longitude"],file["latitude"],(file[channel].values)**(alpha), cmap=colormap)
+    ax.pcolormesh(lon.values,lat.values,(file["C"+str_channel].values)**(1/6), cmap=colormap)
     ax.set_xlim([-60,-55])
     ax.set_ylim([11.5, 15])
     ax.axis('off')
     
-    str_day = os.path.split(os.path.split(path_file)[0])[1]
-    output_dir = os.path.join("../images/ciclad", str_day)
-    os.makedirs(output_dir, exist_ok=True)    
+    output_dir = "../images/GOES16/"+str(date)
     
-    output_file = os.path.split(path_file)[1]
-    output_file = os.path.splitext(output_file)[0]
-    output_file = output_file.replace("_BARBADOS-2KM-FD.level2", "")   
-    output_file = output_file[:-3]+'.jpg'
-    output_file = output_file.replace("clavrx_OR_ABI-L1b-RadF-M6C01_G16", "GOES16")    
+    os.makedirs(output_dir, exist_ok=True)
     
+    output_file = os.path.split(path_file)[-1]
+    output_file = "C"+str_channel+"_"+os.path.splitext(output_file)[0]+'.jpg'
     output_file = os.path.join(output_dir, output_file)
     
     fig.savefig(output_file)
@@ -76,7 +68,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Transform ciclad .nc data into satellite images")
     parser.add_argument("-y","--year", default=2020,help="Year, YYYY")
     parser.add_argument("-m","--month", default=2, help="Month, M")
-    parser.add_argument("-d","--day", default=5, help="Day, D")
+    parser.add_argument("-d","--day", default=2, help="Day, D")
     args = parser.parse_args()
     year = args.year
     month = args.month
