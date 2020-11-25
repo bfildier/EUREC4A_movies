@@ -1,4 +1,4 @@
-# by Benjamin Fildier
+# by Benjamin Fildier & Ludovic Touze-Peiffer
 
 # General
 import numpy as np
@@ -26,7 +26,6 @@ from matplotlib.patches import Patch
 from matplotlib.lines import Line2D
 
 
-
 def loadImage(dtime,verbose=False):
     
     """Load GOES image at closest 10mn increment
@@ -36,10 +35,6 @@ def loadImage(dtime,verbose=False):
     
     date_str = dtime.strftime('%Y_%m_%d')
     path_dir = os.path.join(goesdir,date_str)
-    
-    str_name = "clavrx_OR_ABI-L1b-RadF-M6C01_G16_s"
-    
-    
     
     minutes = dtime.minute
     
@@ -68,7 +63,7 @@ def loadImage(dtime,verbose=False):
 def loadSondes(dtime):
     """Load sondes for the day as a list of xarrays"""
     
-    path_allsondes = os.path.join(sondedir,"all_sondes_w_hmix.nc")
+    path_allsondes = os.path.join(sondedir,"all_sondes.nc")
     
     allsondes = xr.open_dataset(path_allsondes)
     #.dropna(dim="launch_time", subset=["time"], thresh=15)
@@ -80,10 +75,12 @@ def loadSondes(dtime):
                                  
     return allsondes
 
-def loadPlatform(dtime, name="EUREC4A_ATR_Track_v1.1.nc"):
+def loadPlatform(dtime, platform_name):
+    """Load track data for platform"""
+
+    filename = "EUREC4A_%s_Track_v1.1.nc"%platform_name
     
-    
-    path_platform = os.path.join(platformdir,name)
+    path_platform = os.path.join(platformdir,filename)
     platform = xr.open_dataset(path_platform)
     
     str_date = dtime.strftime("%Y-%m-%d")
@@ -139,7 +136,7 @@ def getMatchingSondes(allsondes,dtime,dt_fade,nfill=None,verbose=False):
 def initSondeObj():
     """Creates a patch to be displayed on the figure, and updated at each time step"""
    
-    return Circle((lon_center,lat_center),0.03,linewidth=2,ec='w',fc='w',alpha=0)
+    return Circle((lon_center,lat_center),0.02,linewidth=2,ec='w',fc='w',alpha=0)
 
 def getSondeObj(dtime,sonde,scalarMap,col_fading='darkorange',gettime=True):
     """Creates a new patch based on dropsonde data. Not for display, but to 
@@ -177,7 +174,6 @@ def getSondeObj(dtime,sonde,scalarMap,col_fading='darkorange',gettime=True):
     time_sonde = launch_time = datetime.datetime.strptime(str(sonde.launch_time.values)[:16],
                                                 '%Y-%m-%dT%H:%M')
     
-    hmix = sonde.hmix.values
 
 #     alt_sonde = sonde.alt.values[i_dtime]
 #     time_sonde = datetime.datetime.utcfromtimestamp(sonde.time.values[i_dtime])
@@ -195,9 +191,11 @@ def getSondeObj(dtime,sonde,scalarMap,col_fading='darkorange',gettime=True):
     
         
     if (sonde.Platform == "HALO" or sonde.Platform == "P3"):
-        fc=ec='blue'
+        fc=ec='b'
+        if alpha < 1:
+            fc=ec='b'
     else:
-        fc=ec='red'
+        fc=ec='r'
     
 #     # color in darkorange if the sonde reached the ocean
 #     if dtime > last_time:
@@ -215,10 +213,11 @@ def getSondeObj(dtime,sonde,scalarMap,col_fading='darkorange',gettime=True):
     # create and return patch
     return Circle((lon_sonde,lat_sonde),0.03,linewidth=2,ec=ec,fc=fc,alpha=alpha)
 
-def getPlatform(dtime, platform):
+def getPlatform(dtime, platform, platform_col='lemonchiffon',track_col='gold'):
     
     x, y = np.array([platform.lon[:], platform.lat[:]])
-    line = mlines.Line2D(x, y, lw=2., alpha=1, color="y", marker="o",ms=10, markevery=[0],mfc="g",mec="g")
+    # line = mlines.Line2D(x, y, lw=2., alpha=1, color=platform_col, marker="o",ms=10, markevery=[0])
+    line = mlines.Line2D(x, y, lw=1., alpha=1, color=track_col, marker="o",ms=7, markevery=[0],mfc=platform_col,mec=platform_col)
     
     return line
 
@@ -237,7 +236,7 @@ def showTime(ax,dtime):
 
     return t
 
-def initFigure(goes_im):
+def initFigure(goes_im,draw_circle=True):
 
     fig = plt.figure()
     fig.set_size_inches(w_inches, h_inches, True)
@@ -248,8 +247,9 @@ def initFigure(goes_im):
     im.set_extent([lonmin,lonmax,latmin,latmax])
 
     # add HALO circle
-    circ = Circle((lon_center,lat_center),r_circle,linewidth=2,ec=col_top,fill=False)
-    ax.add_patch(circ)
+    if draw_circle:
+        circ = Circle((lon_center,lat_center),r_circle,linewidth=2,ec=col_top,fill=False)
+        ax.add_patch(circ)
 
     # add grid
     ax.xaxis.set_major_locator(ticker.MultipleLocator(0.5))
@@ -284,7 +284,7 @@ def initFigure(goes_im):
 
     return fig, ax, im
 
-def initChangingObjects(ax,allsondes,n_sondeobj=30):
+def initSondeDisplay(ax,allsondes,n_sondeobj=30):
 
     # create and show sonde objects at start time
     sonde_objs = []
@@ -294,7 +294,7 @@ def initChangingObjects(ax,allsondes,n_sondeobj=30):
         # show
         ax.add_patch(sonde_obj)
         time_obj = ax.text(lon_center,lat_center,'',
-                color='w',alpha=1,fontsize=20)
+                color='w',alpha=1,fontsize=18)
         # store
         sonde_objs.append(sonde_obj)
         time_objs.append(time_obj)
@@ -321,7 +321,8 @@ def updateSondeObj(obj,pos=(0,0),fc='w',ec='w',alpha=1.):
     obj.set_alpha(alpha)
     
 def updatePlatformObj(obj, platform, dtime):
-    
+    """Update line and patch (i.e. trajectory and platform) properties for patch object obj"""
+
     dtime_str = dtime.strftime('%Y-%m-%d %H:%M')
         
     ts = pd.to_datetime(platform.time.values[:]) 
@@ -351,22 +352,33 @@ def makeMovie(verbose=False):
 
     # Load all sondes
     allsondes = loadSondes(start)
-    platform = loadPlatform(start)
-    
     Nsondes = len(allsondes)
+
+    # Load platforms
+    platforms = []
+    for platform_name in platform_names:
+        platforms.append(loadPlatform(start,platform_name))
     
     ##-- initialize figure
     
     # figure
-    fig, ax, im = initFigure(goes_im)
+    fig, ax, im = initFigure(goes_im,draw_circle=draw_circle)
     # sondes and times
-    t_main, time_objs, sonde_objs = initChangingObjects(ax,allsondes,n_sondeobj=n_sondeobj)    
+    t_main, time_objs, sonde_objs = initSondeDisplay(ax,allsondes,n_sondeobj=n_sondeobj)    
     
+    # platform(s)
+    platform_objs = []
+    for platform,platform_color,track_color in zip(platforms,platform_colors,track_colors):
     
-    platform_obj = getPlatform(start, platform)
-    ax.add_line(platform_obj)
-
- 
+        # get platform data
+        platform_obj = getPlatform(start,
+                                    platform,
+                                    platform_col=platform_color,
+                                    track_col=track_color)
+        # store
+        platform_objs.append(platform_obj)
+        # show
+        ax.add_line(platform_obj)
 
     ##-- define movie loop
 
@@ -384,12 +396,13 @@ def makeMovie(verbose=False):
         goes_im = loadImage(dtime)
         im.set_data(goes_im)
         
-        updatePlatformObj(platform_obj, platform, dtime)
+        # update platform objects
+        for platform,platform_obj in zip(platforms,platform_objs):
+            updatePlatformObj(platform_obj, platform, dtime)
         
         # update sondes
         for i_sonde,sonde in zip(range(n_sondeobj),getMatchingSondes(allsondes,dtime,dt_fade,nfill=n_sondeobj)):
-            
-        
+
             # sonde = sondes[i_sonde]
             # sonde = sondes[i_sonde]
             launch_time = getLaunchTime(sonde)
@@ -404,12 +417,11 @@ def makeMovie(verbose=False):
             # update time
             lon_sonde,lat_sonde = sonde_obj.center
             updateText(time_objs[i_sonde],
-                      pos=(lon_sonde+0.05,lat_sonde+0.05),
+                        pos=(lon_sonde+0.05,lat_sonde+0.05),
                         text=launch_time,
                         col=sonde_obj.get_fc(),
                         alpha=sonde_obj.get_alpha())
         
-       
         return [im]
     
     ##-- make movie
@@ -439,8 +451,8 @@ if __name__ == "__main__":
     from movie_params import *
 
     # Arguments to be used if want to change options while executing script
-    parser = argparse.ArgumentParser(description="Generates movie showing HALO dropsondes over GOES images")
-    parser.add_argument("-d","--date", required=True, default=None,help="Date, YYYMMDD")
+    parser = argparse.ArgumentParser(description="Generates movie showing sondes and platforms over GOES images")
+    parser.add_argument("-d","--date", required=True, default=None,help="Date, YYYYMMDD")
     args = parser.parse_args()
     date_str = str(args.date)
 
@@ -456,9 +468,10 @@ if __name__ == "__main__":
     if verbose:
 
         print()
-        print('-- Show dropsondes on GOES images --')
+        print('-- Show sondes and platforms on GOES images --')
         print()
         print("Flight day %s"%date_str)
+        print("Platforms: %s"%(', '.join(platform_names)))
         print("Time increment: %2.1f min"%(dt.seconds/60))
         print('Number of frames:',Nt)
         print('Start movie at %s'%start_time)
