@@ -52,8 +52,8 @@ end_time = "21:30"
 
 # platforms to show (if any)
 platform_names = ['ATR','HALO']
-track_colors = ['palegoldenrod','palegreen']
-platform_colors = ['goldenrod','green']
+track_colors = ['orange','teal']
+platform_colors = ['orange','teal']
 draw_circle = 'HALO' not in platform_names # shown HALO circle iff HALO track is not shown
 
 # movie format
