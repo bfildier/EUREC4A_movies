@@ -75,12 +75,12 @@ def make_figure(path_file, source='ciclad'):
                                 lat=slice(latmax, latmin))
 
         if (ds_sat_sel.time.dt.hour < 11 or ds_sat_sel.time.dt.hour > 21):
-            colormap = "Greys"
-            cmin, cmax = (260, 300)
+            colormap = cmap_night
+            cmin, cmax = cmap_night_lim
             channel = GOES16_var_night
         else:
-            colormap = "Greys"
-            cmin, cmax = (270, 300)
+            colormap = cmap_day
+            cmin, cmax = cmap_day_lim
             channel = GOES16_var_day
 
         # Drop times where no data is available at the center of the requested domain
