@@ -25,7 +25,7 @@ def make_figure(path_file, source='ciclad'):
     :param source: type of source to use: ciclad (default), local
     :return:
     """
-    assert source in ['ciclad', 'local'], 'Source unknown, please choose between ciclad, local'
+    assert source in ['ciclad', 'local', 'opendap'], 'Source unknown, please choose between ciclad, local'
     if source == 'ciclad':
     
         # path = os.path.join(path_dir,"clavrx_goes16_2020_022_2348_BARBADOS-2KM-FD.level2.nc")
@@ -116,6 +116,51 @@ def make_figure(path_file, source='ciclad'):
 
         plt.close(fig)
 
+    elif source == 'opendap':
+        ds_sat = xr.open_dataset(path_file)
+        # Select only region of interest defined in movie_params.py
+        ds_sat_sel = ds_sat.sel(lon=slice(lonmin,lonmax),
+                                lat=slice(latmax, latmin))
+
+        for time in tqdm.tqdm(ds_sat_sel.time):
+            ds = ds_sat_sel.sel(time=time)
+
+            if (ds.time.dt.hour < 11 or ds.time.dt.hour > 21):
+                colormap = cmap_night
+                cmin, cmax = cmap_night_lim
+                channel = GOES16_var_night
+            else:
+                colormap = cmap_day
+                cmin, cmax = cmap_day_lim
+                channel = GOES16_var_day
+
+            fig, ax = plt.subplots(1, 1)
+
+            fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=None, hspace=None)
+
+            ax.pcolormesh(ds["lon"].values,
+                          ds["lat"].values,
+                          ds[channel].squeeze().values, cmap=colormap,
+                          vmin=cmin, vmax=cmax)
+            ax.set_xlim([lonmin, lonmax])
+            ax.set_ylim([latmin, latmax])
+            ax.axis('off')
+
+            output_dir = goesdir
+            os.makedirs(output_dir, exist_ok=True)
+
+            output_file = str(ds.squeeze().time.dt.strftime(image_file_fmt).values)
+            try:
+                output_file = output_file.format(channel=channel)
+            except:
+                pass
+
+            output_file = os.path.join(output_dir, output_file)
+
+            fig.savefig(output_file)
+
+            plt.close(fig)
+
        
 if __name__ == "__main__":
     
@@ -130,14 +175,18 @@ if __name__ == "__main__":
     parser.add_argument("-i", "--input", default='../satellite_data/ciclad/%Y_%m_%d/*.nc',
                         help="Input filename format of netCDF4 files")
     parser.add_argument("-s", "--source", default='ciclad',
-                        help="Source of files (ciclad or local)")  # datafiles differ depending on the source
+                        help="Source of files (ciclad, local, opendap)")  # datafiles differ depending on the source
     args = parser.parse_args()
     year = args.year
     month = args.month
     day = args.day
     input_file_fmt = args.input
     source = args.source
-    
-    files = get_files(year, month, day, input_file_fmt)
+
+    if source == 'opendap':
+        date = dt.datetime(year,month,day)
+        files = [date.strftime('https://observations.ipsl.fr/thredds/dodsC/EUREC4A/SATELLITES/GOES-E/0.5km_01min/%Y/%Y_%m_%d/GOES_13_8N-18N-62W-50W_%Y%m%d.nc')]
+    else:
+        files = get_files(year, month, day, input_file_fmt)
     for file in tqdm.tqdm(files):
         make_figure(file, source = source)
