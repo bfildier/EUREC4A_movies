@@ -1,15 +1,13 @@
 """
 Main script to create EUREC4A movies
 """
-import glob, os, sys, copy
+import os, sys
 import datetime as dt
 import argparse
 import tqdm
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import xarray as xr
-from omegaconf import OmegaConf
 sys.path.append('.')
 sys.path.append('./scripts/')
 import helpers as h
@@ -41,7 +39,6 @@ def check_range(time, timeranges):
             return t
 
     return None
-
 
 
 def make_figure(ds, cfg_general=None, cfg_specific=None):
@@ -97,15 +94,17 @@ if __name__ == "__main__":
     cat = open_catalog(cfg_access.catalog)
     date = dt.datetime(year, month, day)
 
-    catalog_entry = cat.satellites.sat.GOES16_regridded(date=date)
+    catalog_entry_1 = cat.satellites.sat.GOES16_regridded(date=date)
+    catalog_entry_2 = cat.satellites.sat.GOES16_regridded_30min
     t_res = cfg_design.output.images['temporal_resolution_min']
     times = pd.date_range(date,date+dt.timedelta(days=1),freq=f'{t_res}T')
 
     # Load all available satellite images lazy
     datasets = {}
     fmt = 'CH{ch:02d}_{res:02d}min'
-    datasets[fmt.format(ch=13, res=1)] = catalog_entry(channel=13,date=date).to_dask()
-    datasets[fmt.format(ch=2, res=1)] = catalog_entry(channel=2, date=date).to_dask()
+    datasets[fmt.format(ch=13, res=1)] = catalog_entry_1(channel=13, date=date).to_dask()
+    datasets[fmt.format(ch=2, res=1)] = catalog_entry_1(channel=2, date=date).to_dask()
+    datasets[fmt.format(ch=13, res=30)] = catalog_entry_2.to_dask()
 
     design_setup = cfg_design.satellite.defaults
 
@@ -120,15 +119,19 @@ if __name__ == "__main__":
 
         t_range = check_range(time.time(), time_ranges)
         cfg_key = time_ranges_str[t_range]
-
-        design_setup_.update(cfg_design.satellite.timespecific[cfg_key])
+        if cfg_key is not None:
+            design_setup_.update(cfg_design.satellite.timespecific[cfg_key])
         channel = design_setup_.channel
 
-        # Check if highest temporal res is available
+        # Check if highest temporal res is available otherwise fallback to lower resolution or None
         try:
             data = datasets[fmt.format(ch=channel, res=1)].sel(time=time, tolerance=dt.timedelta(minutes=1), method='nearest')
-        except KeyError:
-            data = None
+        except KeyError: # Data not available at high resolution
+            try:
+                data = datasets[fmt.format(ch=channel, res=30)].sel(time=time, tolerance=dt.timedelta(minutes=17),
+                                                                   method='nearest')
+            except KeyError:
+                data = None
 
         fig = make_figure(data, cfg_general=cfg_design, cfg_specific=design_setup_)
 
