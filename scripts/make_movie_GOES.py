@@ -3,7 +3,7 @@
 # General
 import numpy as np
 import os,sys,glob
-import datetime
+import datetime as dt
 # Remove warning
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
@@ -26,24 +26,20 @@ from matplotlib.patches import Patch
 from matplotlib.lines import Line2D
 
 
-def loadImage(dtime,verbose=False):
-    
-    """Load GOES image at closest 10mn increment
+def loadImage(dtime, channel='C13', verbose=False):
+    """Load GOES image closest to given time
     Arguments:
     - dtime: datetime object
     """
     
     date_str = dtime.strftime('%Y_%m_%d')
-    path_dir = os.path.join(goesdir,date_str)
-    
-    minutes = dtime.minute
-    
-    # pick time rounded to closest 9mn increment
+    goes_temporal_res = 1  # temporal resolution in minutes
+    # pick time of goes_timestep
     hr_goes = dtime.hour
-    min_goes = round(dtime.minute/10)*10 # round min to closest 10mn
+    min_goes = round(dtime.minute/goes_temporal_res)*goes_temporal_res  # round min to closest goes_timestep
     hr_goes += int((min_goes/60)) # increment if round to next hour
     min_goes = min_goes%60
-    dtime_goes = datetime.datetime(year=dtime.year,
+    dtime_goes = dt.datetime(year=dtime.year,
                                    month=dtime.month,
                                    day=dtime.day,
                                    hour=hr_goes,
@@ -51,8 +47,12 @@ def loadImage(dtime,verbose=False):
     
     # path of image
     nameroot = dtime_goes.strftime('%Y%j%H%M')
+    file_fmt = dtime_goes.strftime(image_file_fmt)
+    filename = file_fmt.format(channel=channel)
+    file = glob.glob(os.path.join(goesdir, filename))
 
-    fullpath = glob.glob(path_dir+"/GOES16_s"+nameroot+'.jpg')[0]
+    assert len(file) == 1, 'No or too many files found for requested time ({})'.format(os.path.join(goesdir, filename))
+    fullpath = file[0]
    
     if verbose:
         print('load image %s.jpg'%nameroot)
@@ -66,19 +66,18 @@ def loadSondes(dtime):
     path_allsondes = os.path.join(sondedir,"all_sondes.nc")
     
     allsondes = xr.open_dataset(path_allsondes)
-    #.dropna(dim="launch_time", subset=["time"], thresh=15)
-                               
-    str_dtime = dtime.strftime('%Y%m%d')
      
-    #all sondes for the specific day                           
-    allsondes = allsondes.sel(launch_time = str_dtime)
+    #all sondes for the specific day
+    allsondes = allsondes.swap_dims({'sounding': 'launch_time'}).sortby('launch_time')
+    sondes_of_day = allsondes.sel(launch_time=slice(dtime.date()+dt.timedelta(hours=0),
+                                                    dtime.date()+dt.timedelta(hours=24)))
                                  
-    return allsondes
+    return sondes_of_day
 
 def loadPlatform(dtime, platform_name):
     """Load track data for platform"""
 
-    filename = "EUREC4A_%s_Track_v1.1.nc"%platform_name
+    filename = "EUREC4A_%s_Track_v1.2.nc"%platform_name
     
     path_platform = os.path.join(platformdir,filename)
     platform = xr.open_dataset(path_platform)
@@ -105,7 +104,7 @@ def getMatchingSondes(allsondes,dtime,dt_fade,nfill=None,verbose=False):
     sondes = []
     
     # window for fading out sonde display
-    delta_fade = datetime.timedelta(minutes=dt_fade)
+    delta_fade = dt.timedelta(minutes=dt_fade)
    
     number_sondes = len(allsondes.launch_time)
     
@@ -113,7 +112,7 @@ def getMatchingSondes(allsondes,dtime,dt_fade,nfill=None,verbose=False):
         sonde = allsondes.isel(launch_time=i)
         #.dropna(dim="gpsalt",subset=["time"])
         
-        launch_time = datetime.datetime.strptime(str(sonde.launch_time.values)[:16],
+        launch_time = dt.datetime.strptime(str(sonde.launch_time.values)[:16],
                                                 '%Y-%m-%dT%H:%M')
 
         # If sonde currently falling or fell in the past dt_fade mn
@@ -154,7 +153,7 @@ def getSondeObj(dtime,sonde,scalarMap,col_fading='darkorange',gettime=True):
 
 #     t_inds = np.arange(0,sonde.time.size,int(sonde.time.size/15)) # use time subindices to speed up the code
        
-#     sonde_times = np.array([datetime.datetime.utcfromtimestamp(sonde.time[t_inds[i]].values).strftime("%Y-%m-%dT%H:%M")\
+#     sonde_times = np.array([dt.datetime.utcfromtimestamp(sonde.time[t_inds[i]].values).strftime("%Y-%m-%dT%H:%M")\
 #                              for i in range(len(t_inds))]) 
     
     
@@ -168,29 +167,33 @@ def getSondeObj(dtime,sonde,scalarMap,col_fading='darkorange',gettime=True):
 #         i_dtime = t_inds[matching_times[-1]]
         
     # position of sonde at current time
-    lon_sonde = sonde.longitude.dropna(dim="height").values[0]
-    lat_sonde = sonde.latitude.dropna(dim="height").values[0]
-    
-    time_sonde = launch_time = datetime.datetime.strptime(str(sonde.launch_time.values)[:16],
+    try:
+        lon_sonde = sonde.longitude.dropna(dim="height").values[0]
+        lat_sonde = sonde.latitude.dropna(dim="height").values[0]
+    except:
+        lon_sonde = sonde.lon.dropna(dim="alt").values[0]
+        lat_sonde = sonde.lat.dropna(dim="alt").values[0]
+
+    time_sonde = launch_time = dt.datetime.strptime(str(sonde.launch_time.values)[:16],
                                                 '%Y-%m-%dT%H:%M')
     
 
 #     alt_sonde = sonde.alt.values[i_dtime]
-#     time_sonde = datetime.datetime.utcfromtimestamp(sonde.time.values[i_dtime])
+#     time_sonde = dt.datetime.utcfromtimestamp(sonde.time.values[i_dtime])
 #    # print("time_sonde" + str(time_sonde))
-#     launch_time = datetime.datetime.strptime(str(sonde.launch_time.values)[:16],'%Y-%m-%dT%H:%M')
+#     launch_time = dt.datetime.strptime(str(sonde.launch_time.values)[:16],'%Y-%m-%dT%H:%M')
 #    # print("launch_time" +str(launch_time))
-#     last_time = datetime.datetime.utcfromtimestamp(sonde.time.values[0])
+#     last_time = dt.datetime.utcfromtimestamp(sonde.time.values[0])
 #   #  print("last_time" + str(last_time))
     
 #     # choose color based on height
 #     fc = ec = scalarMap.to_rgba(alt_sonde)
-    delta_fade = datetime.timedelta(minutes=dt_fade)
+    delta_fade = dt.timedelta(minutes=dt_fade)
     alpha = (((time_sonde+delta_fade)-dtime)/(delta_fade))**3 # to the power 3 for better display
     if alpha > 1: alpha = 1 # correct for cases where alpha>1 due to time rounding errors
     
         
-    if (sonde.Platform == "HALO" or sonde.Platform == "P3"):
+    if (sonde.platform == "HALO" or sonde.platform == "P3"):
         fc=ec='b'
         if alpha < 1:
             fc=ec='b'
@@ -206,7 +209,7 @@ def getSondeObj(dtime,sonde,scalarMap,col_fading='darkorange',gettime=True):
     
 #     if not falling:
 #         # fade out coefficient
-#         delta_fade = datetime.timedelta(minutes=dt_fade)
+#         delta_fade = dt.timedelta(minutes=dt_fade)
 #         alpha = (((time_sonde+delta_fade)-dtime)/(delta_fade))**3 # to the power 3 for better display
 #         if alpha > 1: alpha = 1 # correct for cases where alpha>1 due to time rounding errors
     
@@ -385,7 +388,7 @@ def makeMovie(verbose=False):
     def updateImage(i):
         
         # update current time
-        dtime = start + i*dt
+        dtime = start + i*dt_delta
         if verbose and dtime.minute%10 == 0:
             print('... %s ...'%dtime.strftime('%Y-%m-%d %H:%M'))
         
@@ -459,9 +462,9 @@ if __name__ == "__main__":
     ##-- movie
 
     # define time objects
-    start = datetime.datetime.strptime(date_str+start_time,'%Y%m%d%H:%M')
-    end = datetime.datetime.strptime(date_str+end_time,'%Y%m%d%H:%M')
-    dt = datetime.timedelta(seconds=delta_t)
+    start = dt.datetime.strptime(date_str+start_time,'%Y%m%d%H:%M')
+    end = dt.datetime.strptime(date_str+end_time,'%Y%m%d%H:%M')
+    dt_delta = dt.timedelta(seconds=delta_t)
     Nt = int((end-start).seconds/delta_t)
 
     verbose = True
@@ -472,7 +475,7 @@ if __name__ == "__main__":
         print()
         print("Flight day %s"%date_str)
         print("Platforms: %s"%(', '.join(platform_names)))
-        print("Time increment: %2.1f min"%(dt.seconds/60))
+        print("Time increment: %2.1f min"%(dt_delta.seconds/60))
         print('Number of frames:',Nt)
         print('Start movie at %s'%start_time)
         print()
