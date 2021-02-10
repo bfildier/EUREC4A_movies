@@ -1,0 +1,3 @@
+catalog: https://raw.githubusercontent.com/observingClouds/eurec4a-intake/master/catalog.yml
+dropsondes:
+  directory =
