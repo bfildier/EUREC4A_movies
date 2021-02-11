@@ -1,4 +1,4 @@
-# EUREC$^4$A/ATOMIC flight overview movies
+# EUREC4A/ATOMIC flight overview movies
 Scripts to generate movies of GOES16 imagery with overlays of flight tracks and soundings.
 
 ![Snapshot animation](./docs/imgs/snapshot.png)
