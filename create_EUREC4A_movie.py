@@ -47,6 +47,14 @@ def make_figure(ds, cfg_general=None, cfg_specific=None):
     lonmax = cfg_general.output.domain.lonmax
     latmin = cfg_general.output.domain.latmin
     latmax = cfg_general.output.domain.latmax
+    try:
+        vmin = eval(cfg_specific.vmin)
+    except TypeError:
+        vmin = cfg_specific.vmin
+    try:
+        vmax = eval(cfg_specific.vmax)
+    except TypeError:
+        vmax = cfg_specific.vmax
 
     fig, ax = plt.subplots(1, 1)
     fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=None, hspace=None)
@@ -58,8 +66,9 @@ def make_figure(ds, cfg_general=None, cfg_specific=None):
         var = [*ds_sel.squeeze().data_vars.keys()][0]  # first variable in dataset
         ax.pcolormesh(ds_sel["lon"].values,
                       ds_sel["lat"].values,
-                      ds_sel[var].squeeze().values, cmap=plt.cm.__dict__[cfg_specific.colormap],
-                      vmin=cfg_specific.vmin, vmax=cfg_specific.vmax)
+                      ds_sel[var].squeeze().values,
+                      cmap=plt.cm.__dict__[cfg_specific.colormap],
+                      vmin=vmin, vmax=vmax, shading="nearest")
     ax.set_xlim([lonmin, lonmax])
     ax.set_ylim([latmin, latmax])
     ax.axis('off')
@@ -81,6 +90,7 @@ if __name__ == "__main__":
     parser.add_argument("-d", "--day", default=5, help="Day, D", type=int)
     parser.add_argument("-s", "--source", default='opendap',
                         help="Source of files (opendap)")
+    parser.add_argument("-o", "--overwrite", default=False, help="overwriting existing local images", type=bool)
     args = parser.parse_args()
     year = args.year
     month = args.month
@@ -123,6 +133,14 @@ if __name__ == "__main__":
             design_setup_.update(cfg_design.satellite.timespecific[cfg_key])
         channel = design_setup_.channel
 
+        output_dir = cfg_output.output.images.directory
+        os.makedirs(output_dir, exist_ok=True)
+        filename = os.path.join(output_dir, cfg_output.output.images.file_fmt)
+        output_file = str(time.strftime(filename))
+
+        if os.path.exists(output_file) and not args.overwrite:
+            continue
+
         # Check if highest temporal res is available otherwise fallback to lower resolution or None
         try:
             data = datasets[fmt.format(ch=channel, res=1)].sel(time=time, tolerance=dt.timedelta(minutes=1), method='nearest')
@@ -134,10 +152,5 @@ if __name__ == "__main__":
                 data = None
 
         fig = make_figure(data, cfg_general=cfg_design, cfg_specific=design_setup_)
-
-        output_dir = cfg_output.output.images.directory
-        os.makedirs(output_dir, exist_ok=True)
-        filename = os.path.join(output_dir, cfg_output.output.images.file_fmt)
-        output_file = str(time.strftime(filename))
 
         export_figure(fig, output_file)

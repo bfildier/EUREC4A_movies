@@ -1,14 +1,6 @@
-input:
-  dropsondes:
-    directory: '../data/dropsondes'
-  tracks:
-    directory: '../data/tracks'
-  satellite_img:
-    directory: '/scratch/local1/m300408/GOES16animation/images'
-    fmt: ${directory}/GOES16__{channel}__%Y%m%d_%H%M.png
 output:
   images:
-    directory: '../images'
+    directory: './images'
     file_fmt: 'GOES16__%Y%m%d_%H%M.png'
   movies:
-    directory: '../movies'
+    directory: './movies'
