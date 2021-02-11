@@ -14,15 +14,16 @@ pip install -r https://raw.githubusercontent.com/observingClouds/eurec4a-intake/
 # Clone directory
 git clone https://github.com/bfildier/EUREC4A_movies
 ```
+All necessary data (satellite images, platform tracks, soundings data) is loaded automatically from online resources.
 ## Creating the images
 GOES16 satellite images are created with
 ```
-python create_EUREC4A_movie.py -y 2020 -m 2 -d 5
+python ./scripts/make_movie_opendap.py -y 2020 -m 2 -d 5
 ```
 ## Creating the movie
 Based on the images created above
 ```
-python scripts/make_movie_GOES_opendap.py -d 20200205 --start_time 10:00 --stop_time 10:10
+python scripts/make_movie_opendap.py -d 20200205 --start_time 10:00 --stop_time 12:10
 ```
 overlays the GOES16 images with flight trajectories and sounding trajectories.
 
