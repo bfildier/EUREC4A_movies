@@ -1,0 +1,6 @@
+output:
+  images:
+    directory: './images'
+    file_fmt: 'GOES16__%Y%m%d_%H%M.png'
+  movies:
+    directory: './movies'

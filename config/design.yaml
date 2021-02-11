@@ -1,0 +1,54 @@
+HALO_circle:
+  lon_center = -57.717
+  lat_center = 13.3
+
+# platform names following EUREC4A meta data convention
+platforms:
+  incl_platforms:
+    - ATR
+    - HALO
+  ATR:
+    color: black
+
+satellite:
+  defaults:
+    colormap: terrain
+  timespecific:
+    "00:00-10:59":
+      colormap: RdBu_r
+      channel: 13
+      vmin: 260
+      vmax: 302
+    "11:00-20:59":
+      colormap: RdBu_r
+      channel: 2
+      vmin: None
+      vmax: None
+    "21:00-23:59":
+      colormap: RdBu_r
+      channel: 13
+      vmin: 260
+      vmax: 302
+
+soundings:
+  alt_max: 11000  # important for colormap of soundings
+  colormap: terrain
+
+
+output:
+  images:
+    dpi: 150
+    temporal_resolution_min: 1
+    width: 1125
+  movies:
+    w_inches: 10
+    # how many times real speed is increased
+    # (600 is about 2 dropsondes appearing per movie second)
+    speed_factor: 600
+    delta_t: 60 # time increment to update frames, in s
+    dt_fade: 40 # (mn real clock) # fading of dropsonde display
+  domain:
+    latmin: 11.5
+    latmax: 15
+    lonmin: -60
+    lonmax: -55

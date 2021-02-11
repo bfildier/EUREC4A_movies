@@ -4,6 +4,7 @@
 import numpy as np
 import os,sys,glob
 import datetime as dt
+from omegaconf import OmegaConf
 # Remove warning
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
@@ -24,21 +25,21 @@ import matplotlib.cm as cmx
 import matplotlib.lines as mlines
 from matplotlib.patches import Patch
 from matplotlib.lines import Line2D
+from intake import open_catalog
 
 
-def loadImage(dtime, channel='C13', verbose=False):
+def loadImage(dtime, cfg, verbose=False):
     """Load GOES image closest to given time
     Arguments:
     - dtime: datetime object
     """
-    
-    date_str = dtime.strftime('%Y_%m_%d')
+
     goes_temporal_res = 1  # temporal resolution in minutes
     # pick time of goes_timestep
     hr_goes = dtime.hour
-    min_goes = round(dtime.minute/goes_temporal_res)*goes_temporal_res  # round min to closest goes_timestep
+    min_goes = np.round(dtime.minute/goes_temporal_res)*goes_temporal_res  # round min to closest goes_timestep
     hr_goes += int((min_goes/60)) # increment if round to next hour
-    min_goes = min_goes%60
+    min_goes = int(min_goes%60)
     dtime_goes = dt.datetime(year=dtime.year,
                                    month=dtime.month,
                                    day=dtime.day,
@@ -47,12 +48,13 @@ def loadImage(dtime, channel='C13', verbose=False):
     
     # path of image
     nameroot = dtime_goes.strftime('%Y%j%H%M')
-    file_fmt = dtime_goes.strftime(image_file_fmt)
-    filename = file_fmt.format(channel=channel)
-    file = glob.glob(os.path.join(goesdir, filename))
+    path = cfg.output.images.directory
+    filename = os.path.join(path, cfg.output.images.file_fmt)
+    filename = dtime_goes.strftime(filename)
+    filename = glob.glob(os.path.join( filename))
 
-    assert len(file) == 1, 'No or too many files found for requested time ({})'.format(os.path.join(goesdir, filename))
-    fullpath = file[0]
+    assert len(filename) == 1, 'No or too many files found for requested time ({})'.format(filename)
+    fullpath = filename[0]
    
     if verbose:
         print('load image %s.jpg'%nameroot)
@@ -60,13 +62,23 @@ def loadImage(dtime, channel='C13', verbose=False):
     # load and return image
     return Image.open(fullpath)
 
-def loadSondes(dtime):
+def loadSondes(dtime, catalog):
     """Load sondes for the day as a list of xarrays"""
-    
-    path_allsondes = os.path.join(sondedir,"all_sondes.nc")
-    
-    allsondes = xr.open_dataset(path_allsondes)
-     
+    datasets = {}
+    for platform in ['bco', 'meteor', 'ms_merian', 'ronbrown', 'atalante_vaisala']:
+        datasets[platform] = catalog.radiosondes[platform].to_dask()
+    # Preparing merging of radiosoundings and dropsondes
+    radiosondes = xr.concat(datasets.values(), dim="sounding")
+    radiosondes = radiosondes.set_coords(["launch_time","platform_id"])
+    radiosondes = radiosondes.rename({"platform_id":"platform",
+                                      "sounding_id":"sounding"
+                                      })
+    del radiosondes['flight_time']
+    dropsondes = catalog.dropsondes.JOANNE.level3.to_dask()
+    dropsondes = dropsondes.set_coords("platform")
+    radios_at_droplevel = radiosondes.sel(alt=dropsondes.alt, method='nearest')
+    allsondes = xr.concat([radios_at_droplevel.p.compute(), dropsondes.p.compute()], dim="sounding")
+
     #all sondes for the specific day
     allsondes = allsondes.swap_dims({'sounding': 'launch_time'}).sortby('launch_time')
     sondes_of_day = allsondes.sel(launch_time=slice(dtime.date()+dt.timedelta(hours=0),
@@ -74,16 +86,12 @@ def loadSondes(dtime):
                                  
     return sondes_of_day
 
-def loadPlatform(dtime, platform_name):
+def loadPlatform(dtime, platform_name, catalog):
     """Load track data for platform"""
 
-    filename = "EUREC4A_%s_Track_v1.2.nc"%platform_name
-    
-    path_platform = os.path.join(platformdir,filename)
-    platform = xr.open_dataset(path_platform)
-    
-    str_date = dtime.strftime("%Y-%m-%d")
-    platform = platform.sel(time=str_date)
+    platform_track = catalog.tracks[platform_name].to_dask()
+
+    platform = platform_track.sel(time=slice(dtime,dtime+dt.timedelta(days=1)))
     
     return platform
 
@@ -167,12 +175,9 @@ def getSondeObj(dtime,sonde,scalarMap,col_fading='darkorange',gettime=True):
 #         i_dtime = t_inds[matching_times[-1]]
         
     # position of sonde at current time
-    try:
-        lon_sonde = sonde.longitude.dropna(dim="height").values[0]
-        lat_sonde = sonde.latitude.dropna(dim="height").values[0]
-    except:
-        lon_sonde = sonde.lon.dropna(dim="alt").values[0]
-        lat_sonde = sonde.lat.dropna(dim="alt").values[0]
+
+    lon_sonde = sonde.lon.dropna(dim="alt").values[0]
+    lat_sonde = sonde.lat.dropna(dim="alt").values[0]
 
     time_sonde = launch_time = dt.datetime.strptime(str(sonde.launch_time.values)[:16],
                                                 '%Y-%m-%dT%H:%M')
@@ -338,29 +343,31 @@ def updatePlatformObj(obj, platform, dtime):
                 
     obj.set_markevery([matching_time])
 
-def makeMovie(verbose=False):
+def makeMovie(s_time, e_time, cfg, verbose=False):
     """Generate animation"""
 
     n_sondeobj = 30
 
     # colorscale falling dropsondes
-    cNorm = colors.Normalize(vmin=0, vmax=altmax)
-    scalarMap = cmx.ScalarMappable(norm=cNorm, cmap=cmap)
+    cNorm = colors.Normalize(vmin=0, vmax=cfg.soundings.alt_max)
+    scalarMap = cmx.ScalarMappable(norm=cNorm,
+                                   cmap=plt.cm.__dict__[cfg.soundings.colormap])
 
     ##-- initialize data
+    # Initialize intake catalog
+    cat = open_catalog(cfg.catalog)
     
     # Load first GOES image
-    goes_im = loadImage(start)
-    # current_image_time = imageNameRoot(start)
+    goes_im = loadImage(start, cfg_merged)
 
     # Load all sondes
-    allsondes = loadSondes(start)
+    allsondes = loadSondes(start, cat)
     Nsondes = len(allsondes)
 
     # Load platforms
     platforms = []
     for platform_name in platform_names:
-        platforms.append(loadPlatform(start,platform_name))
+        platforms.append(loadPlatform(start,platform_name, cat))
     
     ##-- initialize figure
     
@@ -396,7 +403,7 @@ def makeMovie(verbose=False):
         t_main.set_text(dtime.strftime('%Y-%m-%d\n%H:%M UTC'))
         
         # update GOES image if necessary
-        goes_im = loadImage(dtime)
+        goes_im = loadImage(dtime, cfg)
         im.set_data(goes_im)
         
         # update platform objects
@@ -435,7 +442,7 @@ def makeMovie(verbose=False):
     writer = animation.writers['ffmpeg'](fps=speed_factor/delta_t)
     
     # save
-
+    outputdir = cfg.output.movies.directory
     os.makedirs(outputdir,exist_ok=True)
 
     moviefile = os.path.join(outputdir,'%s.mp4'%(start.strftime('%Y-%m-%d')))
@@ -456,14 +463,23 @@ if __name__ == "__main__":
     # Arguments to be used if want to change options while executing script
     parser = argparse.ArgumentParser(description="Generates movie showing sondes and platforms over GOES images")
     parser.add_argument("-d","--date", required=True, default=None,help="Date, YYYYMMDD")
+    parser.add_argument("-s", "--start_time", required=False, default="00:00", help="start time of movie in HHMM")
+    parser.add_argument("-e", "--stop_time", required=False, default="23:59", help="start time of movie in HHMM")
     args = parser.parse_args()
     date_str = str(args.date)
+
+    cfg_design = OmegaConf.load("./config/design.yaml")
+    cfg_access = OmegaConf.load("./config/access_opendap.yaml")
+    cfg_output = OmegaConf.load("./config/output_user.yaml")
+    cfg_merged = OmegaConf.merge(cfg_design,cfg_access,cfg_output)
+    cfg_merged._parents = OmegaConf.merge(cfg_design,cfg_access,cfg_output)
 
     ##-- movie
 
     # define time objects
-    start = dt.datetime.strptime(date_str+start_time,'%Y%m%d%H:%M')
-    end = dt.datetime.strptime(date_str+end_time,'%Y%m%d%H:%M')
+    start = dt.datetime.strptime(date_str+args.start_time,'%Y%m%d%H:%M')
+    end = dt.datetime.strptime(date_str+args.stop_time,'%Y%m%d%H:%M')
+    delta_t = cfg_design.output.movies.delta_t
     dt_delta = dt.timedelta(seconds=delta_t)
     Nt = int((end-start).seconds/delta_t)
 
@@ -481,7 +497,7 @@ if __name__ == "__main__":
         print()
 
     # make movie
-    makeMovie(verbose=verbose)
+    makeMovie(start, end, cfg_merged, verbose=verbose)
 
     if verbose:
         print()
