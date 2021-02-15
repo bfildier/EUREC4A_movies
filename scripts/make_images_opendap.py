@@ -105,7 +105,8 @@ if __name__ == "__main__":
     date = dt.datetime(year, month, day)
 
     catalog_entry_1 = cat.satellites.sat.GOES16_regridded(date=date)
-    catalog_entry_2 = cat.satellites.sat.GOES16_regridded_30min
+    catalog_entry_2_CH02 = cat.satellites.sat.GOES16_latlongrid_CH02_10min
+    catalog_entry_2_CH13 = cat.satellites.sat.GOES16_latlongrid_CH13_10min
     t_res = cfg_design.output.images['temporal_resolution_min']
     times = pd.date_range(date,date+dt.timedelta(days=1),freq=f'{t_res}T')
 
@@ -114,7 +115,8 @@ if __name__ == "__main__":
     fmt = 'CH{ch:02d}_{res:02d}min'
     datasets[fmt.format(ch=13, res=1)] = catalog_entry_1(channel=13, date=date).to_dask()
     datasets[fmt.format(ch=2, res=1)] = catalog_entry_1(channel=2, date=date).to_dask()
-    datasets[fmt.format(ch=13, res=30)] = catalog_entry_2.to_dask()
+    datasets[fmt.format(ch=13, res=10)] = catalog_entry_2_CH13.to_dask()
+    datasets[fmt.format(ch=2, res=10)] = catalog_entry_2_CH02.to_dask()
 
     design_setup = cfg_design.satellite.defaults
 
@@ -146,7 +148,7 @@ if __name__ == "__main__":
             data = datasets[fmt.format(ch=channel, res=1)].sel(time=time, tolerance=dt.timedelta(minutes=1), method='nearest')
         except KeyError: # Data not available at high resolution
             try:
-                data = datasets[fmt.format(ch=channel, res=30)].sel(time=time, tolerance=dt.timedelta(minutes=17),
+                data = datasets[fmt.format(ch=channel, res=10)].sel(time=time, tolerance=dt.timedelta(minutes=6),
                                                                    method='nearest')
             except KeyError:
                 data = None
