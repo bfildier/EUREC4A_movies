@@ -7,3 +7,4 @@ pandas
 xarray
 Pillow
 matplotlib
+intake
