@@ -84,17 +84,12 @@ if __name__ == "__main__":
     from movie_params import *
 
     # Arguments to be used if want to change options while executing script
-    parser = argparse.ArgumentParser(description="Transform ciclad .nc data into satellite images")
-    parser.add_argument("-y", "--year", default=2020, help="Year, YYYY", type=int)
-    parser.add_argument("-m", "--month", default=2, help="Month, M", type=int)
-    parser.add_argument("-d", "--day", default=5, help="Day, D", type=int)
+    parser = argparse.ArgumentParser(description="Transform satellite data into images")
+    parser.add_argument("-d", "--date", default='20200205', help="Date, YYYYMMDD", type=str)
     parser.add_argument("-s", "--source", default='opendap',
                         help="Source of files (opendap)")
     parser.add_argument("-o", "--overwrite", default=False, help="overwriting existing local images", type=bool)
     args = parser.parse_args()
-    year = args.year
-    month = args.month
-    day = args.day
     source = args.source
 
     assert source == 'opendap', 'Currently only opendap is supported'
@@ -102,7 +97,7 @@ if __name__ == "__main__":
     cfg_access = OmegaConf.load("./config/access_opendap.yaml")
     cfg_output = OmegaConf.load("./config/output_user.yaml")
     cat = open_catalog(cfg_access.catalog)
-    date = dt.datetime(year, month, day)
+    date = dt.datetime.strptime(args.date, '%Y%m%d')
 
     catalog_entry_1 = cat.satellites.sat.GOES16_regridded(date=date)
     catalog_entry_2_CH02 = cat.satellites.sat.GOES16_latlongrid_CH02_10min
