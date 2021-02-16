@@ -35,15 +35,19 @@ height = int(width*dlat/dlon)
 
 # time range
 start_time = "12:00"
-end_time = "15:00"
+end_time = "17:00"
 
 # start_time = "00:00"
 # end_time = "23:59"
 
 # platforms to show (if any)
-platform_names = ['ATR','HALO']
-track_colors = ['palegoldenrod','palegreen']
-platform_colors = ['goldenrod','green']
+#platform_names = ['ATR','HALO']
+#track_colors = ['palegoldenrod','palegreen']
+#platform_colors = ['goldenrod','green']
+platform_names = ['ATR','HALO','P3']
+track_colors = ['palegoldenrod','palegreen','lightsalmon']
+platform_colors = ['goldenrod','green','salmon']
+
 draw_circle = 'HALO' not in platform_names # shown HALO circle iff HALO track is not shown
 
 # movie format
