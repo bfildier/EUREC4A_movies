@@ -469,7 +469,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generates movie showing sondes and platforms over GOES images")
     parser.add_argument("-d","--date", required=True, default=None,help="Date, YYYYMMDD")
     parser.add_argument("-s", "--start_time", required=False, default="00:00", help="start time of movie in HHMM")
-    parser.add_argument("-e", "--stop_time", required=False, default="23:59", help="start time of movie in HHMM")
+    parser.add_argument("-e", "--stop_time", required=False, default="23:59", help="end time of movie in HHMM")
     args = parser.parse_args()
     date_str = str(args.date)
 
