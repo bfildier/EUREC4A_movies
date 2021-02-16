@@ -85,10 +85,13 @@ if __name__ == "__main__":
     # Arguments to be used if want to change options while executing script
     parser = argparse.ArgumentParser(description="Transform satellite data into images")
     parser.add_argument("-d", "--date", default='20200205', help="Date, YYYYMMDD", type=str)
-    parser.add_argument("-s", "--source", default='opendap',
+    parser.add_argument("-s", "--start_time", required=False, default="00:00", help="start time of movie in HHMM")
+    parser.add_argument("-e", "--stop_time", required=False, default="23:59", help="end time of movie in HHMM")
+    parser.add_argument("-q", "--source", default='opendap',
                         help="Source of files (opendap)")
     parser.add_argument("-o", "--overwrite", default=False, help="overwriting existing local images", type=bool)
     args = parser.parse_args()
+    date_str = args.date
     source = args.source
 
     assert source == 'opendap', 'Currently only opendap is supported'
@@ -102,7 +105,9 @@ if __name__ == "__main__":
     catalog_entry_2_CH02 = cat.satellites.sat.GOES16_latlongrid_CH02_10min
     catalog_entry_2_CH13 = cat.satellites.sat.GOES16_latlongrid_CH13_10min
     t_res = cfg_design.output.images['temporal_resolution_min']
-    times = pd.date_range(date,date+dt.timedelta(days=1),freq=f'{t_res}T')
+    start = dt.datetime.strptime(date_str+args.start_time,'%Y%m%d%H:%M')
+    end = dt.datetime.strptime(date_str+args.stop_time,'%Y%m%d%H:%M')
+    times = pd.date_range(start,end,freq=f'{t_res}T')
 
     # Load all available satellite images lazy
     datasets = {}
