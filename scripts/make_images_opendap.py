@@ -10,11 +10,9 @@ import numpy as np
 import pandas as pd
 sys.path.append('.')
 sys.path.append('./scripts/')
-import helpers as h
 from omegaconf import OmegaConf
 from intake import open_catalog
 
-import movie_params as mp
 
 def get_timeperiod_cfg(timerange):
     """
