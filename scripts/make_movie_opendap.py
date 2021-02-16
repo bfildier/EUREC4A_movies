@@ -175,7 +175,9 @@ def getSondeObj(dtime,sonde,scalarMap,col_fading='darkorange',gettime=True):
 #         i_dtime = t_inds[matching_times[-1]]
         
     # position of sonde at current time
-
+    if len(sonde.dropna(dim="alt").alt) == 0:
+        # Sonde is empty
+        return
     lon_sonde = sonde.lon.dropna(dim="alt").values[0]
     lat_sonde = sonde.lat.dropna(dim="alt").values[0]
 
@@ -417,6 +419,9 @@ def makeMovie(s_time, e_time, cfg, verbose=False):
             # sonde = sondes[i_sonde]
             launch_time = getLaunchTime(sonde)
             sonde_obj = getSondeObj(dtime,sonde,scalarMap,col_fading=col_bottom)
+
+            if sonde_obj is None:
+                continue
 
             # update patch
             updateSondeObj(sonde_objs[i_sonde],
