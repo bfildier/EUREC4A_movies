@@ -498,7 +498,7 @@ if __name__ == "__main__":
         print("Platforms: %s"%(', '.join(platform_names)))
         print("Time increment: %2.1f min"%(dt_delta.seconds/60))
         print('Number of frames:',Nt)
-        print('Start movie at %s'%start_time)
+        print('Start movie at %s'%start)
         print()
 
     # make movie
