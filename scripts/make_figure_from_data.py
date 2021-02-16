@@ -169,6 +169,7 @@ if __name__ == "__main__":
 
     # Arguments to be used if want to change options while executing script
     parser = argparse.ArgumentParser(description="Transform ciclad .nc data into satellite images")
+
     parser.add_argument("-y","--year", default=2020,help="Year, YYYY", type=int)
     parser.add_argument("-m","--month", default=2, help="Month, M", type=int)
     parser.add_argument("-d","--day", default=5, help="Day, D", type=int)
@@ -176,6 +177,7 @@ if __name__ == "__main__":
                         help="Input filename format of netCDF4 files")
     parser.add_argument("-s", "--source", default='ciclad',
                         help="Source of files (ciclad, local, opendap)")  # datafiles differ depending on the source
+
     args = parser.parse_args()
     year = args.year
     month = args.month
