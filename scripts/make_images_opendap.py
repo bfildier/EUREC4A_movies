@@ -12,6 +12,7 @@ sys.path.append('.')
 sys.path.append('./scripts/')
 from omegaconf import OmegaConf
 from intake import open_catalog
+from webob.exc import HTTPError
 
 
 def get_timeperiod_cfg(timerange):
@@ -106,10 +107,22 @@ if __name__ == "__main__":
     # Load all available satellite images lazy
     datasets = {}
     fmt = 'CH{ch:02d}_{res:02d}min'
-    datasets[fmt.format(ch=13, res=1)] = catalog_entry_1(channel=13, date=date).to_dask()
-    datasets[fmt.format(ch=2, res=1)] = catalog_entry_1(channel=2, date=date).to_dask()
-    datasets[fmt.format(ch=13, res=10)] = catalog_entry_2_CH13.to_dask()
-    datasets[fmt.format(ch=2, res=10)] = catalog_entry_2_CH02.to_dask()
+    try:
+        datasets[fmt.format(ch=13, res=1)] = catalog_entry_1(channel=13, date=date).to_dask()
+    except HTTPError:
+        pass
+    try:
+        datasets[fmt.format(ch=2, res=1)] = catalog_entry_1(channel=2, date=date).to_dask()
+    except HTTPError:
+        pass
+    try:
+        datasets[fmt.format(ch=13, res=10)] = catalog_entry_2_CH13.to_dask()
+    except HTTPError:
+        pass
+    try:
+        datasets[fmt.format(ch=2, res=10)] = catalog_entry_2_CH02.to_dask()
+    except HTTPError:
+        pass
 
     design_setup = cfg_design.satellite.defaults
 
