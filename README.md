@@ -18,7 +18,7 @@ All necessary data (satellite images, platform tracks, soundings data) is loaded
 ## Creating the images
 GOES16 satellite images are created with
 ```
-python ./scripts/make_movie_opendap.py -y 2020 -m 2 -d 5
+python ./scripts/make_movie_opendap.py -d 20200205 --start_time 10:00 --stop_time 12:10
 ```
 ## Creating the movie
 Based on the images created above
@@ -27,7 +27,7 @@ python scripts/make_movie_opendap.py -d 20200205 --start_time 10:00 --stop_time 
 ```
 overlays the GOES16 images with flight trajectories and sounding trajectories.
 
-Note: The images need to be created first and must exists for the requested time
+Note: The images need to be created first and must exists for the requested times
 
 ## Configuration
 The configuration of the movies/images is done by the config-yaml files in `./config/`
@@ -55,4 +55,4 @@ The configuration of the movies/images is done by the config-yaml files in `./co
           vmin: 260
           vmax: 302
     ``` 
-  If time in not within specified time ranges, the default values are used.
+  If a timestep is not within the specified time ranges, the default values are used.
