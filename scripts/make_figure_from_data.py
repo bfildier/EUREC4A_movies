@@ -14,6 +14,7 @@ def get_files(year=2020, month=2, day=5, input_file_fmt=None):
     
     return files
 
+  
 def make_figure(path_file=None, source='ciclad', times=None, catalog=None):
     """
     Create images from datafiles
@@ -28,6 +29,7 @@ def make_figure(path_file=None, source='ciclad', times=None, catalog=None):
     """
     assert source in ['ciclad', 'local', 'opendap'], 'Source unknown, please choose between ciclad, local'
     assert (source in ['ciclad', 'local']) and (path_file is not None), 'Path needs to be given'
+
     if source == 'ciclad':
     
         # path = os.path.join(path_dir,"clavrx_goes16_2020_022_2348_BARBADOS-2KM-FD.level2.nc")
@@ -120,6 +122,7 @@ def make_figure(path_file=None, source='ciclad', times=None, catalog=None):
 
     elif source == 'opendap':
         ds_sat = xr.open_dataset(path_file)
+
         try:
             print(
                 'Downloading opendap dataset into memory for faster processing.'
@@ -127,6 +130,7 @@ def make_figure(path_file=None, source='ciclad', times=None, catalog=None):
             ds_sat.load()
         except:
             pass
+
         # Select only region of interest defined in movie_params.py
         ds_sat_sel = ds_sat.sel(lon=slice(lonmin,lonmax),
                                 lat=slice(latmax, latmin))
@@ -185,6 +189,7 @@ if __name__ == "__main__":
                         help="Input filename format of netCDF4 files")
     parser.add_argument("-s", "--source", default='ciclad',
                         help="Source of files (ciclad, local, opendap)")  # datafiles differ depending on the source
+
     args = parser.parse_args()
     year = args.year
     month = args.month

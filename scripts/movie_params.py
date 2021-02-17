@@ -14,13 +14,12 @@ elif getpass.getuser() == "ludo":
   platformdir = "/media/ludo/DATA/google-drive/Thèse/EUREC4a/github/Input/"
   outputdir ='../movies/'
   outputdir_images = '../images/ciclad'
-elif getpass.getuser() == "m300408":
+else:
   sondedir = '../data/dropsondes'
   platformdir = '../data/tracks'
   goesdir = '/scratch/local1/m300408/GOES16animation/images'
   image_file_fmt = 'GOES16__{channel}__%Y%m%d_%H%M.png'
   outputdir = '../movies'
-else:
   pass # ADD YOUR DIRECTORIES HERE
 
 
@@ -55,6 +54,11 @@ end_time = "21:30"
 platform_names = ['ATR','HALO']
 track_colors = ['orange','teal']
 platform_colors = ['orange','teal']
+
+# platform_names = ['ATR','HALO','P3']
+# track_colors = ['palegoldenrod','palegreen','lightsalmon']
+# platform_colors = ['goldenrod','green','salmon']
+
 draw_circle = 'HALO' not in platform_names # shown HALO circle iff HALO track is not shown
 
 # movie format
