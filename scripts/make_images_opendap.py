@@ -55,7 +55,14 @@ def make_figure(ds, cfg_general=None, cfg_specific=None):
     except TypeError:
         vmax = cfg_specific.vmax
 
+    dlat = np.abs(cfg_general.output.domain.latmax - cfg_general.output.domain.latmin)
+    dlon = np.abs(cfg_general.output.domain.lonmax - cfg_general.output.domain.lonmin)
+    asp_ratio = dlat / dlon
+    w_inches = cfg_general.output.movies.w_inches
+    h_inches = w_inches * asp_ratio
+
     fig, ax = plt.subplots(1, 1)
+    fig.set_size_inches(w_inches, h_inches, True)
     fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=None, hspace=None)
 
     if ds is not None:
@@ -70,6 +77,7 @@ def make_figure(ds, cfg_general=None, cfg_specific=None):
                       vmin=vmin, vmax=vmax, shading="nearest")
     ax.set_xlim([lonmin, lonmax])
     ax.set_ylim([latmin, latmax])
+    ax.set_aspect(1)
     ax.axis('off')
 
     return fig
@@ -80,7 +88,7 @@ def export_figure(fig, filename):
 
 if __name__ == "__main__":
     # Specified beforehand
-    from movie_params import *
+    # from movie_params import *
 
     # Arguments to be used if want to change options while executing script
     parser = argparse.ArgumentParser(description="Transform satellite data into images")

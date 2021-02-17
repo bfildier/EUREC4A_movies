@@ -27,6 +27,7 @@ import matplotlib.lines as mlines
 from matplotlib.patches import Patch
 from matplotlib.lines import Line2D
 from intake import open_catalog
+from functools import partial
 
 
 def loadImage(dtime, cfg, verbose=False):
@@ -128,7 +129,7 @@ def getMatchingSondes(allsondes,dtime,dt_fade,nfill=None,verbose=False):
         if launch_time <= dtime and launch_time + delta_fade > dtime:
                 
             if verbose:
-                print('keep ',launch_time)
+                logging.debug('keep ',launch_time)
                 
             # Then load sonde data and store it
             sondes.append(sonde)
@@ -141,19 +142,19 @@ def getMatchingSondes(allsondes,dtime,dt_fade,nfill=None,verbose=False):
     else:
         return sondes[:nfill]
 
-def initSondeObj():
+def initSondeObj(cfg):
     """Creates a patch to be displayed on the figure, and updated at each time step"""
    
-    return Circle((lon_center,lat_center),0.02,linewidth=2,ec='w',fc='w',alpha=0)
+    return Circle((cfg.HALO_circle.lon_center,cfg.HALO_circle.lat_center),0.02,linewidth=2,ec='w',fc='w',alpha=0)
 
-def getSondeObj(dtime,sonde,scalarMap,col_fading='darkorange',gettime=True):
+def getSondeObj(dtime,sonde,scalarMap,cfg,col_fading='darkorange',gettime=True):
     """Creates a new patch based on dropsonde data. Not for display, but to 
     communicate its position, color and transparency to patches already plotted."""
     
     ## default value
     if sonde is None:
      #   print("no sonde")
-        return initSondeObj()
+        return initSondeObj(cfg)
     
     ## otherwise define patch with correct position, color and transparency
 
@@ -196,7 +197,7 @@ def getSondeObj(dtime,sonde,scalarMap,col_fading='darkorange',gettime=True):
     
 #     # choose color based on height
 #     fc = ec = scalarMap.to_rgba(alt_sonde)
-    delta_fade = dt.timedelta(minutes=dt_fade)
+    delta_fade = dt.timedelta(minutes=cfg.output.movies.dt_fade)
     alpha = (((time_sonde+delta_fade)-dtime)/(delta_fade))**3 # to the power 3 for better display
     if alpha > 1: alpha = 1 # correct for cases where alpha>1 due to time rounding errors
     
@@ -239,15 +240,22 @@ def getLaunchTime(sonde=None):
     else:
         return str(sonde.launch_time.values)[11:16]
 
-def showTime(ax,dtime):
+def showTime(ax,dtime,cfg):
     """Display time on figure axes ax"""
 
-    t = ax.text(lonmin+0.1,latmax-0.45,dtime.strftime('%Y-%m-%d\n%H:%M UTC'),
-            color='white',fontsize=30)
+    t = ax.text(0,1,
+                dtime.strftime('%Y-%m-%d\n%H:%M UTC'), ha='left', va='top',
+            color='white',fontsize=30, transform=ax.transAxes)
 
     return t
 
-def initFigure(goes_im,draw_circle=True):
+def initFigure(goes_im,cfg,draw_circle=True):
+    dlat = np.abs(cfg.output.domain.latmax - cfg.output.domain.latmin)
+    dlon = np.abs(cfg.output.domain.lonmax - cfg.output.domain.lonmin)
+    asp_ratio = dlat / dlon
+    w_inches = cfg.output.movies.w_inches
+    h_inches = w_inches * asp_ratio
+
 
     fig = plt.figure()
     fig.set_size_inches(w_inches, h_inches, True)
@@ -255,11 +263,20 @@ def initFigure(goes_im,draw_circle=True):
     ax = fig.gca()
 
     im = ax.imshow(goes_im,aspect=1)
-    im.set_extent([lonmin,lonmax,latmin,latmax])
+    im.set_extent([cfg.output.domain.lonmin,
+                   cfg.output.domain.lonmax,
+                   cfg.output.domain.latmin,
+                   cfg.output.domain.latmax])
 
     # add HALO circle
     if draw_circle:
-        circ = Circle((lon_center,lat_center),r_circle,linewidth=2,ec=col_top,fill=False)
+        r_circle = np.sqrt((cfg.HALO_circle.lon_pt_circle - cfg.HALO_circle.lon_center) ** 2 +
+                           (cfg.HALO_circle.lat_pt_circle - cfg.HALO_circle.lat_center) ** 2)
+        circ = Circle((cfg.HALO_circle.lon_center,
+                       cfg.HALO_circle.lat_center),
+                      r_circle, linewidth=2,
+                      ec=cfg.output.movies.color_top,
+                      fill=False)
         ax.add_patch(circ)
 
     # add grid
@@ -295,23 +312,23 @@ def initFigure(goes_im,draw_circle=True):
 
     return fig, ax, im
 
-def initSondeDisplay(ax,allsondes,n_sondeobj=30):
+def initSondeDisplay(ax,allsondes,cfg,n_sondeobj=30):
 
     # create and show sonde objects at start time
     sonde_objs = []
     time_objs = []
     for i_sonde in range(n_sondeobj):
-        sonde_obj = initSondeObj()
+        sonde_obj = initSondeObj(cfg)
         # show
         ax.add_patch(sonde_obj)
-        time_obj = ax.text(lon_center,lat_center,'',
+        time_obj = ax.text(cfg.HALO_circle.lon_center,cfg.HALO_circle.lat_center,'',
                 color='w',alpha=1,fontsize=18)
         # store
         sonde_objs.append(sonde_obj)
         time_objs.append(time_obj)
 
     # init current time
-    t_main = showTime(ax,start)
+    t_main = showTime(ax, start, cfg)
 
     return t_main, time_objs, sonde_objs
 
@@ -369,36 +386,36 @@ def makeMovie(s_time, e_time, cfg, verbose=False):
 
     # Load platforms
     platforms = {}
-    for platform_name in platform_names:
+    for platform_name in cfg.platforms.incl_platforms:
         logging.debug(f"Loading platform: {platform_name}")
         platforms[platform_name] = loadPlatform(start,platform_name, cat)
     
     ##-- initialize figure
     
     # figure
-    fig, ax, im = initFigure(goes_im,draw_circle=draw_circle)
+    fig, ax, im = initFigure(goes_im, cfg_merged, draw_circle=cfg_merged.output.movies.draw_HALO_circle)
     # sondes and times
-    t_main, time_objs, sonde_objs = initSondeDisplay(ax,allsondes,n_sondeobj=n_sondeobj)    
+    t_main, time_objs, sonde_objs = initSondeDisplay(ax, allsondes, cfg_merged, n_sondeobj=n_sondeobj)
     
     # platform(s)
     platform_objs = {}
-    for platform,platform_color,track_color in zip(platforms.keys(),platform_colors,track_colors):
-        if len(platforms[platform].time) == 0:
-            logging.warning(f"No track found for {platform} on this day")
+    for platform_name in platforms.keys():
+        if len(platforms[platform_name].time) == 0:
+            logging.warning(f"No track found for {platform_name} on this day")
             continue
         # get platform data
         platform_obj = getPlatform(start,
-                                platforms[platform],
-                                platform_col=platform_color,
-                                track_col=track_color)
+                                platforms[platform_name],
+                                platform_col=cfg.platforms[platform_name].platform_color,
+                                track_col=cfg.platforms[platform_name].track_color)
         # store
-        platform_objs[platform] = platform_obj
+        platform_objs[platform_name] = platform_obj
         # show
         ax.add_line(platform_obj)
 
     ##-- define movie loop
 
-    def updateImage(i):
+    def updateImage(i, cfg):
         
         # update current time
         dtime = start + i*dt_delta
@@ -417,12 +434,13 @@ def makeMovie(s_time, e_time, cfg, verbose=False):
             updatePlatformObj(platform_obj, platforms[platform_name], dtime)
         
         # update sondes
-        for i_sonde,sonde in zip(range(n_sondeobj),getMatchingSondes(allsondes,dtime,dt_fade,nfill=n_sondeobj)):
+        for i_sonde,sonde in zip(range(n_sondeobj),
+                                 getMatchingSondes(allsondes,dtime,cfg.output.movies.dt_fade,nfill=n_sondeobj)):
 
             # sonde = sondes[i_sonde]
             # sonde = sondes[i_sonde]
             launch_time = getLaunchTime(sonde)
-            sonde_obj = getSondeObj(dtime,sonde,scalarMap,col_fading=col_bottom)
+            sonde_obj = getSondeObj(dtime,sonde,scalarMap,col_fading=cfg.output.movies.color_bottom, cfg=cfg)
 
             if sonde_obj is None:
                 continue
@@ -447,15 +465,16 @@ def makeMovie(s_time, e_time, cfg, verbose=False):
    
     
     # create
-    ani = animation.FuncAnimation(fig,updateImage,Nt,interval=speed_factor/delta_t,blit=True)
-    writer = animation.writers['ffmpeg'](fps=speed_factor/delta_t)
+    updateImage_ = partial(updateImage,cfg=cfg_merged)
+    ani = animation.FuncAnimation(fig,updateImage_,Nt,interval=cfg.output.movies.speed_factor/delta_t,blit=True)
+    writer = animation.writers['ffmpeg'](fps=cfg.output.movies.speed_factor/delta_t)
     
     # save
     outputdir = cfg.output.movies.directory
     os.makedirs(outputdir,exist_ok=True)
 
     moviefile = os.path.join(outputdir,'%s.mp4'%(start.strftime('%Y-%m-%d')))
-    ani.save(moviefile,writer=writer,dpi=dpi)
+    ani.save(moviefile,writer=writer,dpi=cfg.output.movies.dpi)
     
     plt.close()
     
@@ -467,13 +486,14 @@ if __name__ == "__main__":
     ##-- import movie parameters
 
     # Specified beforehand
-    from movie_params import *
+    # from movie_params import *
 
     # Arguments to be used if want to change options while executing script
     parser = argparse.ArgumentParser(description="Generates movie showing sondes and platforms over GOES images")
     parser.add_argument("-d","--date", required=True, default=None,help="Date, YYYYMMDD")
     parser.add_argument("-s", "--start_time", required=False, default="00:00", help="start time of movie in HHMM")
     parser.add_argument("-e", "--stop_time", required=False, default="23:59", help="end time of movie in HHMM")
+    parser.add_argument("-v", "--verbose", required=False, default=True, help="Verbosity of script")
     args = parser.parse_args()
     date_str = str(args.date)
 
@@ -492,22 +512,21 @@ if __name__ == "__main__":
     dt_delta = dt.timedelta(seconds=delta_t)
     Nt = int((end-start).seconds/delta_t)
 
-    verbose = True
-    if verbose:
+    if args.verbose:
 
         print()
         print('-- Show sondes and platforms on GOES images --')
         print()
         print("Flight day %s"%date_str)
-        print("Platforms: %s"%(', '.join(platform_names)))
+        print("Platforms: %s"%(', '.join(cfg_merged.platforms.incl_platforms)))
         print("Time increment: %2.1f min"%(dt_delta.seconds/60))
         print('Number of frames:',Nt)
         print('Start movie at %s'%start)
         print()
 
     # make movie
-    makeMovie(start, end, cfg_merged, verbose=verbose)
+    makeMovie(start, end, cfg_merged, verbose=args.verbose)
 
-    if verbose:
+    if args.verbose:
         print()
         print('Done :)')

@@ -1,6 +1,8 @@
 HALO_circle:
-  lon_center = -57.717
-  lat_center = 13.3
+  lon_center: -57.717
+  lat_center: 13.3
+  lon_pt_circle: -57.245
+  lat_pt_circle: 14.1903
 
 # platform names following EUREC4A meta data convention
 platforms:
@@ -8,7 +10,11 @@ platforms:
     - ATR
     - HALO
   ATR:
-    color: black
+    platform_color: orange
+    track_color: orange
+  HALO:
+    platform_color: teal
+    track_color: teal
 
 satellite:
   defaults:
@@ -41,12 +47,16 @@ output:
     temporal_resolution_min: 1
     width: 1125
   movies:
+    dpi: 150
     w_inches: 10
     # how many times real speed is increased
     # (600 is about 2 dropsondes appearing per movie second)
     speed_factor: 600
     delta_t: 60 # time increment to update frames, in s
     dt_fade: 40 # (mn real clock) # fading of dropsonde display
+    color_top: 'w'
+    color_bottom: 'k'
+    draw_HALO_circle: false
   domain:
     latmin: 11.5
     latmax: 15
