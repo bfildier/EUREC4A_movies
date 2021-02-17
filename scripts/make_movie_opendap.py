@@ -16,7 +16,6 @@ import xarray as xr
 import pandas as pd
 from PIL import Image
 # Display
-import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import matplotlib.ticker as ticker
@@ -24,8 +23,6 @@ from matplotlib.patches import Circle, Wedge
 import matplotlib.colors as colors
 import matplotlib.cm as cmx
 import matplotlib.lines as mlines
-from matplotlib.patches import Patch
-from matplotlib.lines import Line2D
 from intake import open_catalog
 from functools import partial
 
@@ -40,13 +37,13 @@ def loadImage(dtime, cfg, verbose=False):
     # pick time of goes_timestep
     hr_goes = dtime.hour
     min_goes = np.round(dtime.minute/goes_temporal_res)*goes_temporal_res  # round min to closest goes_timestep
-    hr_goes += int((min_goes/60)) # increment if round to next hour
+    hr_goes += int((min_goes/60))  # increment if round to next hour
     min_goes = int(min_goes%60)
     dtime_goes = dt.datetime(year=dtime.year,
-                                   month=dtime.month,
-                                   day=dtime.day,
-                                   hour=hr_goes,
-                                   minute=min_goes)
+                             month=dtime.month,
+                             day=dtime.day,
+                             hour=hr_goes,
+                             minute=min_goes)
     
     # path of image
     nameroot = dtime_goes.strftime('%Y%j%H%M')
@@ -59,7 +56,7 @@ def loadImage(dtime, cfg, verbose=False):
     fullpath = filename[0]
    
     if verbose:
-        print('load image %s.jpg'%nameroot)
+        logging.info('load image %s.jpg' % nameroot)
     
     # load and return image
     return Image.open(fullpath)
@@ -72,8 +69,8 @@ def loadSondes(dtime, catalog):
     # Preparing merging of radiosoundings and dropsondes
     radiosondes = xr.concat(datasets.values(), dim="sounding")
     radiosondes = radiosondes.set_coords(["launch_time","platform_id"])
-    radiosondes = radiosondes.rename({"platform_id":"platform",
-                                      "sounding_id":"sounding"
+    radiosondes = radiosondes.rename({"platform_id": "platform",
+                                      "sounding_id": "sounding"
                                       })
     del radiosondes['flight_time']
     dropsondes = catalog.dropsondes.JOANNE.level3.to_dask()
@@ -81,7 +78,7 @@ def loadSondes(dtime, catalog):
     radios_at_droplevel = radiosondes.sel(alt=dropsondes.alt, method='nearest')
     allsondes = xr.concat([radios_at_droplevel.p.compute(), dropsondes.p.compute()], dim="sounding")
 
-    #all sondes for the specific day
+    # all sondes for the specific day
     allsondes = allsondes.swap_dims({'sounding': 'launch_time'}).sortby('launch_time')
     sondes_of_day = allsondes.sel(launch_time=slice(dtime.date()+dt.timedelta(hours=0),
                                                     dtime.date()+dt.timedelta(hours=24)))
@@ -92,7 +89,6 @@ def loadPlatform(dtime, platform_name, catalog):
     """Load track data for platform"""
 
     platform_track = catalog.tracks[platform_name].to_dask()
-
     platform = platform_track.sel(time=slice(dtime,dtime+dt.timedelta(days=1)))
     
     return platform
@@ -120,13 +116,12 @@ def getMatchingSondes(allsondes,dtime,dt_fade,nfill=None,verbose=False):
     
     for i in range(number_sondes):
         sonde = allsondes.isel(launch_time=i)
-        #.dropna(dim="gpsalt",subset=["time"])
         
         launch_time = dt.datetime.strptime(str(sonde.launch_time.values)[:16],
-                                                '%Y-%m-%dT%H:%M')
+                                           '%Y-%m-%dT%H:%M')
 
         # If sonde currently falling or fell in the past dt_fade mn
-        if launch_time <= dtime and launch_time + delta_fade > dtime:
+        if launch_time <= dtime < launch_time + delta_fade:
                 
             if verbose:
                 logging.debug('keep ',launch_time)
@@ -142,39 +137,22 @@ def getMatchingSondes(allsondes,dtime,dt_fade,nfill=None,verbose=False):
     else:
         return sondes[:nfill]
 
+
 def initSondeObj(cfg):
     """Creates a patch to be displayed on the figure, and updated at each time step"""
    
-    return Circle((cfg.HALO_circle.lon_center,cfg.HALO_circle.lat_center),0.02,linewidth=2,ec='w',fc='w',alpha=0)
+    return Circle((cfg.HALO_circle.lon_center,cfg.HALO_circle.lat_center),
+                  0.02,linewidth=2,ec='w',fc='w',alpha=0)
 
-def getSondeObj(dtime,sonde,scalarMap,cfg,col_fading='darkorange',gettime=True):
+
+def getSondeObj(dtime, sonde, scalarMap, cfg, col_fading='darkorange', gettime=True):
     """Creates a new patch based on dropsonde data. Not for display, but to 
     communicate its position, color and transparency to patches already plotted."""
     
-    ## default value
+    # default value
     if sonde is None:
-     #   print("no sonde")
+        logging.debug("no sonde")
         return initSondeObj(cfg)
-    
-    ## otherwise define patch with correct position, color and transparency
-
-    # earlier get index in sonde lifetime that matches current time
-    dtime_str = dtime.strftime('%Y-%m-%dT%H:%M')
-
-#     t_inds = np.arange(0,sonde.time.size,int(sonde.time.size/15)) # use time subindices to speed up the code
-       
-#     sonde_times = np.array([dt.datetime.utcfromtimestamp(sonde.time[t_inds[i]].values).strftime("%Y-%m-%dT%H:%M")\
-#                              for i in range(len(t_inds))]) 
-    
-    
-#     matching_times = np.where(sonde_times == dtime_str)[0]
-    
-#     if matching_times.size == 0: # no matching time, sonde on the ground
-#         falling = False
-#         i_dtime = 0
-#     else:
-#         falling = True
-#         i_dtime = t_inds[matching_times[-1]]
         
     # position of sonde at current time
     if len(sonde.dropna(dim="alt").alt) == 0:
@@ -183,55 +161,33 @@ def getSondeObj(dtime,sonde,scalarMap,cfg,col_fading='darkorange',gettime=True):
     lon_sonde = sonde.lon.dropna(dim="alt").values[0]
     lat_sonde = sonde.lat.dropna(dim="alt").values[0]
 
-    time_sonde = launch_time = dt.datetime.strptime(str(sonde.launch_time.values)[:16],
+    time_sonde = dt.datetime.strptime(str(sonde.launch_time.values)[:16],
                                                 '%Y-%m-%dT%H:%M')
-    
 
-#     alt_sonde = sonde.alt.values[i_dtime]
-#     time_sonde = dt.datetime.utcfromtimestamp(sonde.time.values[i_dtime])
-#    # print("time_sonde" + str(time_sonde))
-#     launch_time = dt.datetime.strptime(str(sonde.launch_time.values)[:16],'%Y-%m-%dT%H:%M')
-#    # print("launch_time" +str(launch_time))
-#     last_time = dt.datetime.utcfromtimestamp(sonde.time.values[0])
-#   #  print("last_time" + str(last_time))
-    
-#     # choose color based on height
-#     fc = ec = scalarMap.to_rgba(alt_sonde)
     delta_fade = dt.timedelta(minutes=cfg.output.movies.dt_fade)
-    alpha = (((time_sonde+delta_fade)-dtime)/(delta_fade))**3 # to the power 3 for better display
-    if alpha > 1: alpha = 1 # correct for cases where alpha>1 due to time rounding errors
-    
-        
-    if (sonde.platform == "HALO" or sonde.platform == "P3"):
-        fc=ec='b'
+    alpha = (((time_sonde+delta_fade)-dtime)/(delta_fade))**3  # to the power 3 for better display
+    if alpha > 1: alpha = 1  # correct for cases where alpha>1 due to time rounding errors
+
+    if sonde.platform == "HALO" or sonde.platform == "P3":
+        fc = ec = 'b'
         if alpha < 1:
-            fc=ec='b'
+            fc = ec = 'b'
     else:
-        fc=ec='r'
-    
-#     # color in darkorange if the sonde reached the ocean
-#     if dtime > last_time:
-#         fc = ec = col_fading
-#     # fix color for when sonde is just being launched
-#     if dtime == launch_time:
-#         fc = ec = col_top
-    
-#     if not falling:
-#         # fade out coefficient
-#         delta_fade = dt.timedelta(minutes=dt_fade)
-#         alpha = (((time_sonde+delta_fade)-dtime)/(delta_fade))**3 # to the power 3 for better display
-#         if alpha > 1: alpha = 1 # correct for cases where alpha>1 due to time rounding errors
-    
+        fc = ec = 'r'
+
     # create and return patch
     return Circle((lon_sonde,lat_sonde),0.03,linewidth=2,ec=ec,fc=fc,alpha=alpha)
 
-def getPlatform(dtime, platform, platform_col='lemonchiffon',track_col='gold'):
+
+def getPlatform(platform, platform_col='lemonchiffon', track_col='gold'):
     
     x, y = np.array([platform.lon[:], platform.lat[:]])
-    # line = mlines.Line2D(x, y, lw=2., alpha=1, color=platform_col, marker="o",ms=10, markevery=[0])
-    line = mlines.Line2D(x, y, lw=1., alpha=1, color=track_col, marker="o",ms=7, markevery=[0],mfc=platform_col,mec=platform_col)
+    line = mlines.Line2D(x, y, lw=1., alpha=1, color=track_col,
+                         marker="o",ms=7, markevery=[0],
+                         mfc=platform_col,mec=platform_col)
     
     return line
+
 
 def getLaunchTime(sonde=None):
 
@@ -240,22 +196,27 @@ def getLaunchTime(sonde=None):
     else:
         return str(sonde.launch_time.values)[11:16]
 
-def showTime(ax,dtime,cfg):
+
+def showTime(ax, dtime, cfg):
     """Display time on figure axes ax"""
 
-    t = ax.text(0,1,
+    t = ax.text(0, 1,
                 dtime.strftime('%Y-%m-%d\n%H:%M UTC'), ha='left', va='top',
-            color='white',fontsize=30, transform=ax.transAxes)
+                color='white',fontsize=30, transform=ax.transAxes)
 
     return t
 
-def initFigure(goes_im,cfg,draw_circle=True):
+
+def initFigure(goes_im, cfg, draw_circle=True):
+    """Initialize figure"""
+    # Calculate figure dimensions( Attention! Needs to be the same
+    # as those during the image creation process, because there is
+    # no other geometric reference in the images
     dlat = np.abs(cfg.output.domain.latmax - cfg.output.domain.latmin)
     dlon = np.abs(cfg.output.domain.lonmax - cfg.output.domain.lonmin)
     asp_ratio = dlat / dlon
     w_inches = cfg.output.movies.w_inches
     h_inches = w_inches * asp_ratio
-
 
     fig = plt.figure()
     fig.set_size_inches(w_inches, h_inches, True)
@@ -290,29 +251,10 @@ def initFigure(goes_im,cfg,draw_circle=True):
     ax.yaxis.set_ticklabels([])
     ax.yaxis.set_ticks_position('none')
 
-    
-#     legend_elements = [Line2D([0], [0], marker='o', color='y', label='Platform',
-#                           markerfacecolor='g', markersize=10),
-#                    Line2D([0], [0], marker='o', color='w', label='inside cold pool',
-#                           markerfacecolor='b', markersize=10),
-#                    Line2D([0], [0], marker='o', color='w', label='outside cold pool',
-#                           markerfacecolor='r', markersize=10)
-#                    ]
-
-# Create the figure
-#     ax.legend(handles=legend_elements, loc='upper right', labelspacing=2, framealpha=1)
-    # show colorbar
-#     x,y,w,h = ax.get_position().bounds
-#     c_map_ax = fig.add_axes([x+0.9*w, y+0.05*h, 0.008*w, 0.5*h])
-#     cbar = mpl.colorbar.ColorbarBase(c_map_ax, cmap=cmap, orientation = 'vertical')
-#     cbar.ax.set_ylabel('z(km)',fontsize=20,color='w') # cbar legend
-#     h_values = np.linspace(0,altmax,6)
-#     cbar.ax.set_yticklabels(['%1.1f'%(v/1000) for v in h_values],fontsize=15) # set ticklabels
-#     cbar.ax.tick_params(axis='y',colors='w') # set tick color in white
-
     return fig, ax, im
 
-def initSondeDisplay(ax,allsondes,cfg,n_sondeobj=30):
+
+def initSondeDisplay(ax, allsondes, cfg, n_sondeobj=30):
 
     # create and show sonde objects at start time
     sonde_objs = []
@@ -332,7 +274,8 @@ def initSondeDisplay(ax,allsondes,cfg,n_sondeobj=30):
 
     return t_main, time_objs, sonde_objs
 
-def updateText(t,pos='',text='',col='',alpha=''):
+
+def updateText(t, pos='', text='', col='', alpha=''):
     """Update text displayed on image in text object t"""
 
     t.set_text(text)
@@ -340,14 +283,16 @@ def updateText(t,pos='',text='',col='',alpha=''):
     t.set_color(col)
     t.set_alpha(alpha)
 
-def updateSondeObj(obj,pos=(0,0),fc='w',ec='w',alpha=1.):
+
+def updateSondeObj(obj, pos=(0,0), fc='w', ec='w', alpha=1.):
     """Update patch (i.e. sonde) properties for patch object obj"""
 
     obj.center = pos
     obj.set_fc(fc)
     obj.set_ec(ec)
     obj.set_alpha(alpha)
-    
+
+
 def updatePlatformObj(obj, platform, dtime):
     """Update line and patch (i.e. trajectory and platform) properties for patch object obj"""
 
@@ -356,12 +301,13 @@ def updatePlatformObj(obj, platform, dtime):
     ts = pd.to_datetime(platform.time.values[:]) 
     df = ts.strftime('%Y-%m-%d %H:%M')
 
-    matching_time = np.where(df.values[:]==dtime_str)[0]
+    matching_time = np.where(df.values[:] == dtime_str)[0]
 
-    if(matching_time.size != 0):
-        matching_time=matching_time[0]
+    if matching_time.size != 0:
+        matching_time = matching_time[0]
                 
     obj.set_markevery([matching_time])
+
 
 def makeMovie(s_time, e_time, cfg, verbose=False):
     """Generate animation"""
@@ -373,16 +319,14 @@ def makeMovie(s_time, e_time, cfg, verbose=False):
     scalarMap = cmx.ScalarMappable(norm=cNorm,
                                    cmap=plt.cm.__dict__[cfg.soundings.colormap])
 
-    ##-- initialize data
     # Initialize intake catalog
     cat = open_catalog(cfg.catalog)
     
     # Load first GOES image
-    goes_im = loadImage(start, cfg_merged)
+    goes_im = loadImage(s_time, cfg_merged)
 
     # Load all sondes
-    allsondes = loadSondes(start, cat)
-    Nsondes = len(allsondes)
+    allsondes = loadSondes(s_time, cat)
 
     # Load platforms
     platforms = {}
@@ -390,8 +334,7 @@ def makeMovie(s_time, e_time, cfg, verbose=False):
         logging.debug(f"Loading platform: {platform_name}")
         platforms[platform_name] = loadPlatform(start,platform_name, cat)
     
-    ##-- initialize figure
-    
+    # -- initialize figure
     # figure
     fig, ax, im = initFigure(goes_im, cfg_merged, draw_circle=cfg_merged.output.movies.draw_HALO_circle)
     # sondes and times
@@ -404,21 +347,19 @@ def makeMovie(s_time, e_time, cfg, verbose=False):
             logging.warning(f"No track found for {platform_name} on this day")
             continue
         # get platform data
-        platform_obj = getPlatform(start,
-                                platforms[platform_name],
-                                platform_col=cfg.platforms[platform_name].platform_color,
-                                track_col=cfg.platforms[platform_name].track_color)
+        platform_obj = getPlatform(platforms[platform_name],
+                                   platform_col=cfg.platforms[platform_name].platform_color,
+                                   track_col=cfg.platforms[platform_name].track_color)
         # store
         platform_objs[platform_name] = platform_obj
         # show
         ax.add_line(platform_obj)
 
-    ##-- define movie loop
-
+    # -- define movie loop
     def updateImage(i, cfg):
         
         # update current time
-        dtime = start + i*dt_delta
+        dtime = s_time + i*dt_delta
         if verbose and dtime.minute%10 == 0:
             print('... %s ...'%dtime.strftime('%Y-%m-%d %H:%M'))
         
@@ -434,47 +375,48 @@ def makeMovie(s_time, e_time, cfg, verbose=False):
             updatePlatformObj(platform_obj, platforms[platform_name], dtime)
         
         # update sondes
-        for i_sonde,sonde in zip(range(n_sondeobj),
-                                 getMatchingSondes(allsondes,dtime,cfg.output.movies.dt_fade,nfill=n_sondeobj)):
+        for i_sonde, sonde in zip(range(n_sondeobj),
+                                 getMatchingSondes(allsondes, dtime, cfg.output.movies.dt_fade,
+                                                   nfill=n_sondeobj)):
 
-            # sonde = sondes[i_sonde]
-            # sonde = sondes[i_sonde]
             launch_time = getLaunchTime(sonde)
-            sonde_obj = getSondeObj(dtime,sonde,scalarMap,col_fading=cfg.output.movies.color_bottom, cfg=cfg)
+            sonde_obj = getSondeObj(dtime, sonde, scalarMap,
+                                    col_fading=cfg.output.movies.color_bottom,
+                                    cfg=cfg)
 
             if sonde_obj is None:
                 continue
 
             # update patch
             updateSondeObj(sonde_objs[i_sonde],
-                            pos=sonde_obj.center,
-                            fc=sonde_obj.get_fc(),
-                            ec=sonde_obj.get_ec(),
-                            alpha=sonde_obj.get_alpha())
+                           pos=sonde_obj.center,
+                           fc=sonde_obj.get_fc(),
+                           ec=sonde_obj.get_ec(),
+                           alpha=sonde_obj.get_alpha())
             # update time
-            lon_sonde,lat_sonde = sonde_obj.center
+            lon_sonde, lat_sonde = sonde_obj.center
             updateText(time_objs[i_sonde],
-                        pos=(lon_sonde+0.05,lat_sonde+0.05),
-                        text=launch_time,
-                        col=sonde_obj.get_fc(),
-                        alpha=sonde_obj.get_alpha())
+                       pos=(lon_sonde+0.05, lat_sonde+0.05),
+                       text=launch_time,
+                       col=sonde_obj.get_fc(),
+                       alpha=sonde_obj.get_alpha())
         
         return [im]
     
-    ##-- make movie
-   
-    
+    # -- make movie
     # create
-    updateImage_ = partial(updateImage,cfg=cfg_merged)
-    ani = animation.FuncAnimation(fig,updateImage_,Nt,interval=cfg.output.movies.speed_factor/delta_t,blit=True)
+    updateImage_ = partial(updateImage, cfg=cfg_merged)
+    ani = animation.FuncAnimation(fig, updateImage_, Nt,
+                                  interval=cfg.output.movies.speed_factor/delta_t,
+                                  blit=True)
     writer = animation.writers['ffmpeg'](fps=cfg.output.movies.speed_factor/delta_t)
     
     # save
     outputdir = cfg.output.movies.directory
-    os.makedirs(outputdir,exist_ok=True)
+    os.makedirs(outputdir, exist_ok=True)
 
-    moviefile = os.path.join(outputdir,'%s.mp4'%(start.strftime('%Y-%m-%d')))
-    ani.save(moviefile,writer=writer,dpi=cfg.output.movies.dpi)
+    moviefile = os.path.join(outputdir, '%s.mp4'%(start.strftime('%Y-%m-%d')))
+    ani.save(moviefile, writer=writer, dpi=cfg.output.movies.dpi)
     
     plt.close()
     
@@ -482,12 +424,6 @@ def makeMovie(s_time, e_time, cfg, verbose=False):
 
 
 if __name__ == "__main__":
-    
-    ##-- import movie parameters
-
-    # Specified beforehand
-    # from movie_params import *
-
     # Arguments to be used if want to change options while executing script
     parser = argparse.ArgumentParser(description="Generates movie showing sondes and platforms over GOES images")
     parser.add_argument("-d","--date", required=True, default=None,help="Date, YYYYMMDD")
@@ -503,8 +439,7 @@ if __name__ == "__main__":
     cfg_merged = OmegaConf.merge(cfg_design,cfg_access,cfg_output)
     cfg_merged._parents = OmegaConf.merge(cfg_design,cfg_access,cfg_output)
 
-    ##-- movie
-
+    # -- movie
     # define time objects
     start = dt.datetime.strptime(date_str+args.start_time,'%Y%m%d%H:%M')
     end = dt.datetime.strptime(date_str+args.stop_time,'%Y%m%d%H:%M')
@@ -513,15 +448,14 @@ if __name__ == "__main__":
     Nt = int((end-start).seconds/delta_t)
 
     if args.verbose:
-
         print()
         print('-- Show sondes and platforms on GOES images --')
         print()
-        print("Flight day %s"%date_str)
-        print("Platforms: %s"%(', '.join(cfg_merged.platforms.incl_platforms)))
-        print("Time increment: %2.1f min"%(dt_delta.seconds/60))
-        print('Number of frames:',Nt)
-        print('Start movie at %s'%start)
+        print("Flight day %s" % date_str)
+        print("Platforms: %s" % (', '.join(cfg_merged.platforms.incl_platforms)))
+        print("Time increment: %2.1f min" % (dt_delta.seconds/60))
+        print('Number of frames:', Nt)
+        print('Start movie at %s' % start)
         print()
 
     # make movie

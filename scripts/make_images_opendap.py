@@ -29,19 +29,20 @@ def get_timeperiod_cfg(timerange):
     end_time = dt.datetime.strptime(e_time_str, '%H:%M').time()
     return start_time, end_time
 
+
 def check_range(time, timeranges):
     """
     Check if time is in any timerange
     """
     for t, t_range in enumerate(timeranges):
-        if time >= t_range[0] and time <= t_range[1]:
+        if t_range[0] <= time <= t_range[1]:
             return t
 
     return None
 
 
 def make_figure(ds, cfg_general=None, cfg_specific=None):
-    # Select only region of interest defined in movie_params.py
+    # Select only region of interest defined in design.yaml
     lonmin = cfg_general.output.domain.lonmin
     lonmax = cfg_general.output.domain.lonmax
     latmin = cfg_general.output.domain.latmin
@@ -82,14 +83,13 @@ def make_figure(ds, cfg_general=None, cfg_specific=None):
 
     return fig
 
+
 def export_figure(fig, filename):
-    fig.savefig(output_file)
+    fig.savefig(filename)
     plt.close(fig)
 
-if __name__ == "__main__":
-    # Specified beforehand
-    # from movie_params import *
 
+if __name__ == "__main__":
     # Arguments to be used if want to change options while executing script
     parser = argparse.ArgumentParser(description="Transform satellite data into images")
     parser.add_argument("-d", "--date", default='20200205', help="Date, YYYYMMDD", type=str)
@@ -113,9 +113,9 @@ if __name__ == "__main__":
     catalog_entry_2_CH02 = cat.satellites.sat.GOES16_latlongrid_CH02_10min
     catalog_entry_2_CH13 = cat.satellites.sat.GOES16_latlongrid_CH13_10min
     t_res = cfg_design.output.images['temporal_resolution_min']
-    start = dt.datetime.strptime(date_str+args.start_time,'%Y%m%d%H:%M')
-    end = dt.datetime.strptime(date_str+args.stop_time,'%Y%m%d%H:%M')
-    times = pd.date_range(start,end,freq=f'{t_res}T')
+    start = dt.datetime.strptime(date_str+args.start_time, '%Y%m%d%H:%M')
+    end = dt.datetime.strptime(date_str+args.stop_time, '%Y%m%d%H:%M')
+    times = pd.date_range(start, end, freq=f'{t_res}T')
 
     # Load all available satellite images lazy
     datasets = {}
@@ -140,10 +140,9 @@ if __name__ == "__main__":
     design_setup = cfg_design.satellite.defaults
 
     time_ranges_str = [*cfg_design.satellite.timespecific.keys()]
-    time_ranges = np.empty((len(time_ranges_str),2),dtype=object)
+    time_ranges = np.empty((len(time_ranges_str), 2), dtype=object)
     for t, t_range in enumerate(time_ranges_str):
         time_ranges[t,:] = get_timeperiod_cfg(t_range)
-
 
     for time in tqdm.tqdm(times):
         design_setup_ = design_setup.copy()
@@ -165,7 +164,7 @@ if __name__ == "__main__":
         # Check if highest temporal res is available otherwise fallback to lower resolution or None
         try:
             data = datasets[fmt.format(ch=channel, res=1)].sel(time=time, tolerance=dt.timedelta(minutes=1), method='nearest')
-        except KeyError: # Data not available at high resolution
+        except KeyError:  # Data not available at high resolution
             try:
                 data = datasets[fmt.format(ch=channel, res=10)].sel(time=time, tolerance=dt.timedelta(minutes=6),
                                                                    method='nearest')
