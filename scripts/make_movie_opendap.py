@@ -4,6 +4,7 @@
 import numpy as np
 import os,sys,glob
 import datetime as dt
+import logging
 from omegaconf import OmegaConf
 # Remove warning
 import warnings
@@ -367,9 +368,10 @@ def makeMovie(s_time, e_time, cfg, verbose=False):
     Nsondes = len(allsondes)
 
     # Load platforms
-    platforms = []
+    platforms = {}
     for platform_name in platform_names:
-        platforms.append(loadPlatform(start,platform_name, cat))
+        logging.debug(f"Loading platform: {platform_name}")
+        platforms[platform_name] = loadPlatform(start,platform_name, cat)
     
     ##-- initialize figure
     
@@ -379,16 +381,18 @@ def makeMovie(s_time, e_time, cfg, verbose=False):
     t_main, time_objs, sonde_objs = initSondeDisplay(ax,allsondes,n_sondeobj=n_sondeobj)    
     
     # platform(s)
-    platform_objs = []
-    for platform,platform_color,track_color in zip(platforms,platform_colors,track_colors):
-    
+    platform_objs = {}
+    for platform,platform_color,track_color in zip(platforms.keys(),platform_colors,track_colors):
+        if len(platforms[platform].time) == 0:
+            logging.warning(f"No track found for {platform} on this day")
+            continue
         # get platform data
         platform_obj = getPlatform(start,
-                                    platform,
-                                    platform_col=platform_color,
-                                    track_col=track_color)
+                                platforms[platform],
+                                platform_col=platform_color,
+                                track_col=track_color)
         # store
-        platform_objs.append(platform_obj)
+        platform_objs[platform] = platform_obj
         # show
         ax.add_line(platform_obj)
 
@@ -409,8 +413,8 @@ def makeMovie(s_time, e_time, cfg, verbose=False):
         im.set_data(goes_im)
         
         # update platform objects
-        for platform,platform_obj in zip(platforms,platform_objs):
-            updatePlatformObj(platform_obj, platform, dtime)
+        for platform_name, platform_obj in platform_objs.items():
+            updatePlatformObj(platform_obj, platforms[platform_name], dtime)
         
         # update sondes
         for i_sonde,sonde in zip(range(n_sondeobj),getMatchingSondes(allsondes,dtime,dt_fade,nfill=n_sondeobj)):
