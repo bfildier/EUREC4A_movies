@@ -5,6 +5,7 @@ import tqdm
 import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
+from omegaconf import OmegaConf
 
 
 def get_files(year=2020, month=2, day=5, input_file_fmt=None):
@@ -13,7 +14,8 @@ def get_files(year=2020, month=2, day=5, input_file_fmt=None):
     
     return files
 
-def make_figure(path_file, source='ciclad'):
+  
+def make_figure(path_file=None, source='ciclad', times=None, catalog=None):
     """
     Create images from datafiles
 
@@ -26,6 +28,8 @@ def make_figure(path_file, source='ciclad'):
     :return:
     """
     assert source in ['ciclad', 'local', 'opendap'], 'Source unknown, please choose between ciclad, local'
+    assert (source in ['ciclad', 'local']) and (path_file is not None), 'Path needs to be given'
+
     if source == 'ciclad':
     
         # path = os.path.join(path_dir,"clavrx_goes16_2020_022_2348_BARBADOS-2KM-FD.level2.nc")
@@ -118,6 +122,15 @@ def make_figure(path_file, source='ciclad'):
 
     elif source == 'opendap':
         ds_sat = xr.open_dataset(path_file)
+
+        try:
+            print(
+                'Downloading opendap dataset into memory for faster processing.'
+            )
+            ds_sat.load()
+        except:
+            pass
+
         # Select only region of interest defined in movie_params.py
         ds_sat_sel = ds_sat.sel(lon=slice(lonmin,lonmax),
                                 lat=slice(latmax, latmin))
@@ -169,7 +182,6 @@ if __name__ == "__main__":
 
     # Arguments to be used if want to change options while executing script
     parser = argparse.ArgumentParser(description="Transform ciclad .nc data into satellite images")
-
     parser.add_argument("-y","--year", default=2020,help="Year, YYYY", type=int)
     parser.add_argument("-m","--month", default=2, help="Month, M", type=int)
     parser.add_argument("-d","--day", default=5, help="Day, D", type=int)
@@ -186,9 +198,13 @@ if __name__ == "__main__":
     source = args.source
 
     if source == 'opendap':
+        from intake import open_catalog
+        cfg = OmegaConf.load("../config/access_opendap.yaml")
+        cat = open_catalog(cfg.catalog)
         date = dt.datetime(year,month,day)
-        files = [date.strftime('https://observations.ipsl.fr/thredds/dodsC/EUREC4A/SATELLITES/GOES-E/0.5km_01min/%Y/%Y_%m_%d/GOES_13_8N-18N-62W-50W_%Y%m%d.nc')]
+        catalog_entry = cat.satellites.sat.GOES16_regridded(date=date)
+        make_figure(source='opendap',catalog=catalog_entry)
     else:
         files = get_files(year, month, day, input_file_fmt)
-    for file in tqdm.tqdm(files):
-        make_figure(file, source = source)
+        for file in tqdm.tqdm(files):
+            make_figure(file, source = source)

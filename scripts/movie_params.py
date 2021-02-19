@@ -54,6 +54,7 @@ end_time = "21:30"
 platform_names = ['ATR','HALO']
 track_colors = ['orange','teal']
 platform_colors = ['orange','teal']
+
 # platform_names = ['ATR','HALO','P3']
 # track_colors = ['palegoldenrod','palegreen','lightsalmon']
 # platform_colors = ['goldenrod','green','salmon']
