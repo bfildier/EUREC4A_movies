@@ -413,7 +413,9 @@ def makeMovie(s_time, e_time, cfg, verbose=False):
     ani = animation.FuncAnimation(fig, updateImage_, Nt,
                                   interval=cfg.output.movies.speed_factor/delta_t,
                                   blit=True)
-    writer = animation.writers['ffmpeg'](fps=cfg.output.movies.speed_factor/delta_t)
+    writer = animation.writers['ffmpeg'](fps=cfg.output.movies.speed_factor/delta_t,
+                                         metadata={"comment":f"created on {dt.datetime.now().strftime('%Y%m%d %H:%M')}"}
+                                         )
     
     # save
     outputdir = cfg.output.movies.directory
