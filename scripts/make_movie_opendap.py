@@ -217,6 +217,10 @@ def initFigure(goes_im, cfg, draw_circle=True):
     asp_ratio = dlat / dlon
     w_inches = cfg.output.movies.w_inches
     h_inches = w_inches * asp_ratio
+    if h_inches % 2 != 0:
+        h_inches = h_inches // 2 * 2
+    if w_inches % 2 != 0:
+        w_inches = w_inches // 2 * 2
 
     fig = plt.figure()
     fig.set_size_inches(w_inches, h_inches, True)
