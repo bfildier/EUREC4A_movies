@@ -1,4 +1,6 @@
 # EUREC4A/ATOMIC flight overview movies
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4584692.svg)](https://doi.org/10.5281/zenodo.4584692)
+
 Scripts to generate movies of GOES16 imagery with overlays of flight tracks and soundings.
 
 ![Snapshot animation](./docs/imgs/snapshot.png)
