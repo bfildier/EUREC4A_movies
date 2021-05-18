@@ -182,7 +182,7 @@ def getSondeObj(dtime, sonde, scalarMap, cfg, col_fading='darkorange', gettime=T
 def getPlatform(platform, platform_col='lemonchiffon', track_col='gold'):
     
     x, y = np.array([platform.lon[:], platform.lat[:]])
-    line = mlines.Line2D(x, y, lw=1., alpha=1, color=track_col,
+    line = mlines.Line2D(x, y, lw=5., alpha=1, color=track_col,
                          marker="o",ms=7, markevery=[0],
                          mfc=platform_col,mec=platform_col)
     
