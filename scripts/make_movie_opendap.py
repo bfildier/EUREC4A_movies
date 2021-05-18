@@ -332,7 +332,7 @@ def makeMovie(s_time, e_time, cfg, verbose=False):
     platforms = {}
     for platform_name in cfg.platforms.incl_platforms:
         logging.debug(f"Loading platform: {platform_name}")
-        platforms[platform_name] = loadPlatform(start,platform_name, cat)
+        platforms[platform_name] = loadPlatform(start.date(),platform_name, cat)
     
     # -- initialize figure
     # figure
