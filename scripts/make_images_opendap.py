@@ -121,11 +121,11 @@ if __name__ == "__main__":
     datasets = {}
     fmt = 'CH{ch:02d}_{res:02d}min'
     try:
-        datasets[fmt.format(ch=13, res=1)] = catalog_entry_1(channel=13, date=date).to_dask()
+        datasets[fmt.format(ch=13, res=10)] = catalog_entry_1(channel=13, date=date).to_dask()
     except HTTPError:
         pass
     try:
-        datasets[fmt.format(ch=2, res=1)] = catalog_entry_1(channel=2, date=date).to_dask()
+        datasets[fmt.format(ch=2, res=10)] = catalog_entry_1(channel=2, date=date).to_dask()
     except HTTPError:
         pass
     try:

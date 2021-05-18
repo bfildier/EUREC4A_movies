@@ -375,31 +375,33 @@ def makeMovie(s_time, e_time, cfg, verbose=False):
             updatePlatformObj(platform_obj, platforms[platform_name], dtime)
         
         # update sondes
-        for i_sonde, sonde in zip(range(n_sondeobj),
-                                 getMatchingSondes(allsondes, dtime, cfg.output.movies.dt_fade,
-                                                   nfill=n_sondeobj)):
+        show_sondes = False
+        if show_sondes:
+            for i_sonde, sonde in zip(range(n_sondeobj),
+                                     getMatchingSondes(allsondes, dtime, cfg.output.movies.dt_fade,
+                                                       nfill=n_sondeobj)):
 
-            launch_time = getLaunchTime(sonde)
-            sonde_obj = getSondeObj(dtime, sonde, scalarMap,
-                                    col_fading=cfg.output.movies.color_bottom,
-                                    cfg=cfg)
+                launch_time = getLaunchTime(sonde)
+                sonde_obj = getSondeObj(dtime, sonde, scalarMap,
+                                        col_fading=cfg.output.movies.color_bottom,
+                                        cfg=cfg)
 
-            if sonde_obj is None:
-                continue
+                if sonde_obj is None:
+                    continue
 
-            # update patch
-            updateSondeObj(sonde_objs[i_sonde],
-                           pos=sonde_obj.center,
-                           fc=sonde_obj.get_fc(),
-                           ec=sonde_obj.get_ec(),
+                # update patch
+                updateSondeObj(sonde_objs[i_sonde],
+                               pos=sonde_obj.center,
+                               fc=sonde_obj.get_fc(),
+                               ec=sonde_obj.get_ec(),
+                               alpha=sonde_obj.get_alpha())
+                # update time
+                lon_sonde, lat_sonde = sonde_obj.center
+                updateText(time_objs[i_sonde],
+                           pos=(lon_sonde+0.05, lat_sonde+0.05),
+                           text=launch_time,
+                           col=sonde_obj.get_fc(),
                            alpha=sonde_obj.get_alpha())
-            # update time
-            lon_sonde, lat_sonde = sonde_obj.center
-            updateText(time_objs[i_sonde],
-                       pos=(lon_sonde+0.05, lat_sonde+0.05),
-                       text=launch_time,
-                       col=sonde_obj.get_fc(),
-                       alpha=sonde_obj.get_alpha())
         
         return [im]
     
