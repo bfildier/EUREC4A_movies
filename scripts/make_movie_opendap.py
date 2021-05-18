@@ -88,8 +88,8 @@ def loadSondes(dtime, catalog):
 def loadPlatform(dtime, platform_name, catalog):
     """Load track data for platform"""
 
-    platform_track = catalog.tracks[platform_name].to_dask()
-    platform = platform_track.sel(time=slice(dtime,dtime+dt.timedelta(days=1)))
+    platform_track = catalog[platform_name].track.to_dask()
+    platform = platform_track.sel(time=slice(dtime,dtime+dt.timedelta(days=1,hours=2)))
     
     return platform
 
