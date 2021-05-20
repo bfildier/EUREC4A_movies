@@ -10,10 +10,10 @@ platforms:
     - ATR
     - HALO
   ATR:
-    platform_color: orange
+    platform_color: white
     track_color: orange
   HALO:
-    platform_color: teal
+    platform_color: white
     track_color: teal
 
 satellite:
@@ -23,17 +23,17 @@ satellite:
     "00:00-10:59":
       colormap: RdBu_r
       channel: 13
-      vmin: 260
+      vmin: 240
       vmax: 302
     "11:00-20:59":
-      colormap: RdBu_r
+      colormap: Greys_r
       channel: 2
-      vmin: None
-      vmax: None
+      vmin: 0
+      vmax: 80
     "21:00-23:59":
       colormap: RdBu_r
       channel: 13
-      vmin: 260
+      vmin: 240
       vmax: 302
 
 soundings:
@@ -58,7 +58,7 @@ output:
     color_bottom: 'k'
     draw_HALO_circle: false
   domain:
-    latmin: 11.5
-    latmax: 15
-    lonmin: -60
-    lonmax: -55
+    latmin: 10.0
+    latmax: 16.0
+    lonmin: -59.8
+    lonmax: -49

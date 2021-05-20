@@ -109,9 +109,9 @@ if __name__ == "__main__":
     cat = open_catalog(cfg_access.catalog)
     date = dt.datetime.strptime(args.date, '%Y%m%d')
 
-    catalog_entry_1 = cat.satellites.sat.GOES16_regridded(date=date)
-    catalog_entry_2_CH02 = cat.satellites.sat.GOES16_latlongrid_CH02_10min
-    catalog_entry_2_CH13 = cat.satellites.sat.GOES16_latlongrid_CH13_10min
+    catalog_entry_1 = cat.satellites.GOES16.latlongrid(date=date)
+    catalog_entry_2_CH02 = cat.satellites.GOES16.GOES16_latlongrid_CH02_10min(date=date)
+    catalog_entry_2_CH13 = cat.satellites.GOES16.GOES16_latlongrid_CH13_10min(date=date)
     t_res = cfg_design.output.images['temporal_resolution_min']
     start = dt.datetime.strptime(date_str+args.start_time, '%Y%m%d%H:%M')
     end = dt.datetime.strptime(date_str+args.stop_time, '%Y%m%d%H:%M')
@@ -121,11 +121,11 @@ if __name__ == "__main__":
     datasets = {}
     fmt = 'CH{ch:02d}_{res:02d}min'
     try:
-        datasets[fmt.format(ch=13, res=1)] = catalog_entry_1(channel=13, date=date).to_dask()
+        datasets[fmt.format(ch=13, res=10)] = catalog_entry_1(channel=13, date=date).to_dask()
     except HTTPError:
         pass
     try:
-        datasets[fmt.format(ch=2, res=1)] = catalog_entry_1(channel=2, date=date).to_dask()
+        datasets[fmt.format(ch=2, res=10)] = catalog_entry_1(channel=2, date=date).to_dask()
     except HTTPError:
         pass
     try:
