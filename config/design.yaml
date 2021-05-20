@@ -10,11 +10,11 @@ platforms:
     - ATR
     - HALO
   ATR:
-    platform_color: grey
+    platform_color: white
     track_color: orange
   HALO:
-    platform_color: teal
-    track_color: grey
+    platform_color: white
+    track_color: teal
 
 satellite:
   defaults:
