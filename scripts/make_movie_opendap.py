@@ -88,8 +88,8 @@ def loadSondes(dtime, catalog):
 def loadPlatform(dtime, platform_name, catalog):
     """Load track data for platform"""
 
-    platform_track = catalog.tracks[platform_name].to_dask()
-    platform = platform_track.sel(time=slice(dtime,dtime+dt.timedelta(days=1)))
+    platform_track = catalog[platform_name].track.to_dask()
+    platform = platform_track.sel(time=slice(dtime,dtime+dt.timedelta(days=1,hours=2)))
     
     return platform
 
@@ -182,7 +182,7 @@ def getSondeObj(dtime, sonde, scalarMap, cfg, col_fading='darkorange', gettime=T
 def getPlatform(platform, platform_col='lemonchiffon', track_col='gold'):
     
     x, y = np.array([platform.lon[:], platform.lat[:]])
-    line = mlines.Line2D(x, y, lw=1., alpha=1, color=track_col,
+    line = mlines.Line2D(x, y, lw=5., alpha=1, color=track_col,
                          marker="o",ms=7, markevery=[0],
                          mfc=platform_col,mec=platform_col)
     
@@ -336,7 +336,7 @@ def makeMovie(s_time, e_time, cfg, verbose=False):
     platforms = {}
     for platform_name in cfg.platforms.incl_platforms:
         logging.debug(f"Loading platform: {platform_name}")
-        platforms[platform_name] = loadPlatform(start,platform_name, cat)
+        platforms[platform_name] = loadPlatform(start.date(),platform_name, cat)
     
     # -- initialize figure
     # figure
@@ -379,31 +379,33 @@ def makeMovie(s_time, e_time, cfg, verbose=False):
             updatePlatformObj(platform_obj, platforms[platform_name], dtime)
         
         # update sondes
-        for i_sonde, sonde in zip(range(n_sondeobj),
-                                 getMatchingSondes(allsondes, dtime, cfg.output.movies.dt_fade,
-                                                   nfill=n_sondeobj)):
+        show_sondes = False
+        if show_sondes:
+            for i_sonde, sonde in zip(range(n_sondeobj),
+                                     getMatchingSondes(allsondes, dtime, cfg.output.movies.dt_fade,
+                                                       nfill=n_sondeobj)):
 
-            launch_time = getLaunchTime(sonde)
-            sonde_obj = getSondeObj(dtime, sonde, scalarMap,
-                                    col_fading=cfg.output.movies.color_bottom,
-                                    cfg=cfg)
+                launch_time = getLaunchTime(sonde)
+                sonde_obj = getSondeObj(dtime, sonde, scalarMap,
+                                        col_fading=cfg.output.movies.color_bottom,
+                                        cfg=cfg)
 
-            if sonde_obj is None:
-                continue
+                if sonde_obj is None:
+                    continue
 
-            # update patch
-            updateSondeObj(sonde_objs[i_sonde],
-                           pos=sonde_obj.center,
-                           fc=sonde_obj.get_fc(),
-                           ec=sonde_obj.get_ec(),
+                # update patch
+                updateSondeObj(sonde_objs[i_sonde],
+                               pos=sonde_obj.center,
+                               fc=sonde_obj.get_fc(),
+                               ec=sonde_obj.get_ec(),
+                               alpha=sonde_obj.get_alpha())
+                # update time
+                lon_sonde, lat_sonde = sonde_obj.center
+                updateText(time_objs[i_sonde],
+                           pos=(lon_sonde+0.05, lat_sonde+0.05),
+                           text=launch_time,
+                           col=sonde_obj.get_fc(),
                            alpha=sonde_obj.get_alpha())
-            # update time
-            lon_sonde, lat_sonde = sonde_obj.center
-            updateText(time_objs[i_sonde],
-                       pos=(lon_sonde+0.05, lat_sonde+0.05),
-                       text=launch_time,
-                       col=sonde_obj.get_fc(),
-                       alpha=sonde_obj.get_alpha())
         
         return [im]
     
