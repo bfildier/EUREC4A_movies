@@ -5,6 +5,9 @@ Scripts to generate movies of GOES16 imagery with overlays of flight tracks and 
 
 ![Snapshot animation](./docs/imgs/snapshot.png)
 
+A first version of the movies with black and white colorscale is also accessible
+![here](https://www.youtube.com/playlist?list=PLiy9_GnmONPH1o5t2JVJhp4G9CxZgtCpc).
+
 ## Installation
 ```
 # Install package requirements
