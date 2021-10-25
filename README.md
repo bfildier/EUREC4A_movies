@@ -63,5 +63,6 @@ The configuration of the movies/images is done by the config-yaml files in `./co
   If a timestep is not within the specified time ranges, the default values are used.
 
 ## Specific use
-This code was used to generate movies for appendix of the ATR data paper (2021). These movies can be reproduced using the config/design_ATR.yml file.
+This code was used to generate movies for appendix of the ATR data paper (2021). These movies can be reproduced using the config/design_ATR.yml file. See script scripts/make_ATR_movies_saphire_tracks.py.
+The position of the ATR was corrected from the track files originally used. For the update ATR tracks, use files stored in https://mycore.core-cloud.net/index.php/s/QO3fwv3jDw1zkx2, to be included in local folder ./input/EUREC4A_Core_1Hz_v2 for instance, and read them using the --ATR_track_file option to make_movie_opendap.py. A movie title can be added with the --movie_title option.
 

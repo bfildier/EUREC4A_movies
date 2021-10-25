@@ -1,0 +1,73 @@
+HALO_circle:
+  lon_center: -57.717
+  lat_center: 13.3
+  lon_pt_circle: -57.245
+  lat_pt_circle: 14.1903
+
+# platform names following EUREC4A meta data convention
+platforms:
+  incl_platforms:
+    - ATR
+#    - HALO
+  ATR:
+    platform_color: orangered 
+    track_color: coral
+  HALO:
+    platform_color: white
+    track_color: teal
+
+satellite:
+  defaults:
+    colormap: terrain
+  timespecific:
+    "00:00-10:59":
+#      colormap: RdBu_r
+      colormap: Greys
+      channel: 13
+      vmin: 240
+      vmax: 302
+    "11:00-20:59":
+      colormap: Greys_r
+      channel: 2
+      vmin: 0
+      vmax: 80
+    "21:00-23:59":
+#      colormap: RdBu_r
+      colormap: Greys
+      channel: 13
+      vmin: 240
+      vmax: 302
+
+soundings:
+  alt_max: 11000  # important for colormap of soundings
+  colormap: terrain
+
+
+output:
+  images:
+    dpi: 150
+    temporal_resolution_min: 1
+    width: 1125
+  movies:
+    dpi: 150
+    w_inches: 10
+    # how many times real speed is increased
+    # (600 is about 2 dropsondes appearing per movie second)
+    speed_factor: 600
+    delta_t: 60 # time increment to update frames, in s
+    dt_fade: 40 # (mn real clock) # fading of dropsonde display
+    color_top: 'w'
+    color_bottom: 'k'
+    draw_HALO_circle: true
+    show_sondes: true
+  domain:
+# Display box for HALO+ATR+P3
+#    latmin: 11.0
+#    latmax: 16.0
+#    lonmin: -60.0
+#    lonmax: -52.0
+# Display box for ATR alone
+    latmin: 11.9
+    latmax: 14.7
+    lonmin: -59.85
+    lonmax: -56.1
