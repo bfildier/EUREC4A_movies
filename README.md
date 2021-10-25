@@ -30,7 +30,7 @@ Based on the images created above
 ```
 python scripts/make_movie_opendap.py -d 20200205 --start_time 10:00 --stop_time 12:10
 ```
-overlays the GOES16 images with flight trajectories and sounding trajectories.
+overlays the GOES16 images with flight trajectories and sounding trajectories. If the start date and stop date are different, use the --stop_date option.
 
 Note: The images need to be created first and must exists for the requested times
 
@@ -61,3 +61,7 @@ The configuration of the movies/images is done by the config-yaml files in `./co
           vmax: 302
     ``` 
   If a timestep is not within the specified time ranges, the default values are used.
+
+## Specific use
+This code was used to generate movies for appendix of the ATR data paper (2021). These movies can be reproduced using the config/design_ATR.yml file.
+
