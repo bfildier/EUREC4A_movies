@@ -85,11 +85,14 @@ def loadSondes(dtime, catalog):
                                  
     return sondes_of_day
 
-def loadPlatform(dtime, platform_name, catalog):
+def loadPlatform(dtime, platform_name, catalog, ATR_track_file=None):
     """Load track data for platform"""
 
-    platform_track = catalog[platform_name].track.to_dask()
-    platform = platform_track.sel(time=slice(dtime,dtime+dt.timedelta(days=1,hours=2)))
+    if platform_name == 'ATR' and ATR_track_file is not None: # use user-prescribed track file (from Saphire) because the ATR tracks are slightly wrong for 2020-01-26
+        platform = xr.open_dataset(ATR_track_file)
+    else: # use intake catalog
+        platform_track = catalog[platform_name].track.to_dask()
+        platform = platform_track.sel(time=slice(dtime,dtime+dt.timedelta(days=1,hours=2)))
     
     return platform
 
@@ -181,9 +184,16 @@ def getSondeObj(dtime, sonde, scalarMap, cfg, col_fading='darkorange', gettime=T
 
 def getPlatform(platform, platform_col='lemonchiffon', track_col='gold'):
     
-    x, y = np.array([platform.lon[:], platform.lat[:]])
-    line = mlines.Line2D(x, y, lw=5., alpha=1, color=track_col,
-                         marker="o",ms=7, markevery=[0],
+    if 'lon' in list(platform.coords):
+        x, y = np.array([platform.lon[:], platform.lat[:]])
+    elif 'LONGITUDE' in list(platform.coords):
+        x, y = np.array([platform.LONGITUDE[:], platform.LATITUDE[:]])
+# old version
+#    line = mlines.Line2D(x, y, lw=5., alpha=1, color=track_col,
+#                         marker="o",ms=7, markevery=[0],
+#                         mfc=platform_col,mec=platform_col)
+    line = mlines.Line2D(x, y, lw=2., alpha=1, color=track_col,
+                         marker="o",ms=10, markevery=[0],
                          mfc=platform_col,mec=platform_col)
     
     return line
@@ -197,11 +207,11 @@ def getLaunchTime(sonde=None):
         return str(sonde.launch_time.values)[11:16]
 
 
-def showTime(ax, dtime, cfg):
-    """Display time on figure axes ax"""
+def showTime(ax, dtime, cfg, title=''):
+    """Display time (and movie title if there is one) on figure axes ax"""
 
     t = ax.text(0, 1,
-                dtime.strftime('%Y-%m-%d\n%H:%M UTC'), ha='left', va='top',
+                dtime.strftime('%Y-%m-%d\n%H:%M UTC\n'+title), ha='left', va='top',
                 color='white',fontsize=30, transform=ax.transAxes)
 
     return t
@@ -258,7 +268,7 @@ def initFigure(goes_im, cfg, draw_circle=True):
     return fig, ax, im
 
 
-def initSondeDisplay(ax, allsondes, cfg, n_sondeobj=30):
+def initSondeDisplay(ax, allsondes, cfg, title='', n_sondeobj=30):
 
     # create and show sonde objects at start time
     sonde_objs = []
@@ -274,8 +284,8 @@ def initSondeDisplay(ax, allsondes, cfg, n_sondeobj=30):
         time_objs.append(time_obj)
 
     # init current time
-    t_main = showTime(ax, start, cfg)
-
+    t_main = showTime(ax, start, cfg, title)
+    
     return t_main, time_objs, sonde_objs
 
 
@@ -313,7 +323,7 @@ def updatePlatformObj(obj, platform, dtime):
     obj.set_markevery([matching_time])
 
 
-def makeMovie(s_time, e_time, cfg, verbose=False):
+def makeMovie(s_time, e_time, cfg, movie_name, movie_label, ATR_track_file, verbose=False):
     """Generate animation"""
 
     n_sondeobj = 30
@@ -336,13 +346,13 @@ def makeMovie(s_time, e_time, cfg, verbose=False):
     platforms = {}
     for platform_name in cfg.platforms.incl_platforms:
         logging.debug(f"Loading platform: {platform_name}")
-        platforms[platform_name] = loadPlatform(start.date(),platform_name, cat)
+        platforms[platform_name] = loadPlatform(start.date(),platform_name, cat,ATR_track_file=ATR_track_file)
     
     # -- initialize figure
     # figure
     fig, ax, im = initFigure(goes_im, cfg_merged, draw_circle=cfg_merged.output.movies.draw_HALO_circle)
     # sondes and times
-    t_main, time_objs, sonde_objs = initSondeDisplay(ax, allsondes, cfg_merged, n_sondeobj=n_sondeobj)
+    t_main, time_objs, sonde_objs = initSondeDisplay(ax, allsondes, cfg_merged, title=movie_label, n_sondeobj=n_sondeobj)
     
     # platform(s)
     platform_objs = {}
@@ -368,7 +378,7 @@ def makeMovie(s_time, e_time, cfg, verbose=False):
             print('... %s ...'%dtime.strftime('%Y-%m-%d %H:%M'))
         
         # update main time display
-        t_main.set_text(dtime.strftime('%Y-%m-%d\n%H:%M UTC'))
+        t_main.set_text(dtime.strftime('%Y-%m-%d\n%H:%M UTC\n'+movie_label))
         
         # update GOES image if necessary
         goes_im = loadImage(dtime, cfg)
@@ -380,7 +390,7 @@ def makeMovie(s_time, e_time, cfg, verbose=False):
         
         # update sondes
         show_sondes = False
-        if show_sondes:
+        if cfg.output.movies.show_sondes:
             for i_sonde, sonde in zip(range(n_sondeobj),
                                      getMatchingSondes(allsondes, dtime, cfg.output.movies.dt_fade,
                                                        nfill=n_sondeobj)):
@@ -423,7 +433,8 @@ def makeMovie(s_time, e_time, cfg, verbose=False):
     outputdir = cfg.output.movies.directory
     os.makedirs(outputdir, exist_ok=True)
 
-    moviefile = os.path.join(outputdir, '%s.mp4'%(start.strftime('%Y-%m-%d')))
+    moviefile = os.path.join(outputdir, '%s.mp4'%(movie_name))
+    print(cfg.output.movies.dpi)
     ani.save(moviefile, writer=writer, dpi=cfg.output.movies.dpi)
     
     plt.close()
@@ -434,12 +445,19 @@ def makeMovie(s_time, e_time, cfg, verbose=False):
 if __name__ == "__main__":
     # Arguments to be used if want to change options while executing script
     parser = argparse.ArgumentParser(description="Generates movie showing sondes and platforms over GOES images")
-    parser.add_argument("-d","--date", required=True, default=None,help="Date, YYYYMMDD")
+    parser.add_argument("-d","--start_date", required=True, default=None,help="Date, YYYYMMDD")
+    parser.add_argument("--stop_date",required=False, default=None,help="End Date, YYYYMMDD")
     parser.add_argument("-s", "--start_time", required=False, default="00:00", help="start time of movie in HHMM")
     parser.add_argument("-e", "--stop_time", required=False, default="23:59", help="end time of movie in HHMM")
     parser.add_argument("-v", "--verbose", required=False, default=True, help="Verbosity of script")
+    parser.add_argument("-l", "--movie_label", required=False, default=None, help="Movie title to be added below the date and in the movie name")
+    parser.add_argument("-t", "--ATR_track_file", required=False, default=None, help="Manual entry of track file to use, if different from the intake catalog")
     args = parser.parse_args()
-    date_str = str(args.date)
+    date_str = str(args.start_date)
+    if args.stop_date is None:
+        stop_date_str = date_str
+    else:
+        stop_date_str = str(args.stop_date)
 
     cfg_design = OmegaConf.load("./config/design.yaml")
     cfg_access = OmegaConf.load("./config/access_opendap.yaml")
@@ -450,10 +468,14 @@ if __name__ == "__main__":
     # -- movie
     # define time objects
     start = dt.datetime.strptime(date_str+args.start_time,'%Y%m%d%H:%M')
-    end = dt.datetime.strptime(date_str+args.stop_time,'%Y%m%d%H:%M')
+    stop = dt.datetime.strptime(stop_date_str+args.stop_time,'%Y%m%d%H:%M')
     delta_t = cfg_design.output.movies.delta_t
     dt_delta = dt.timedelta(seconds=delta_t)
-    Nt = int((end-start).seconds/delta_t)
+    Nt = int((stop-start).seconds/delta_t)
+
+    movie_name = start.strftime('%Y-%m-%d')
+    if args.movie_label is not None:
+        movie_name = "%s_%s"%(movie_name,args.movie_label)
 
     if args.verbose:
         print()
@@ -464,10 +486,11 @@ if __name__ == "__main__":
         print("Time increment: %2.1f min" % (dt_delta.seconds/60))
         print('Number of frames:', Nt)
         print('Start movie at %s' % start)
+        print('Movie name: %s'%movie_name)
         print()
 
     # make movie
-    makeMovie(start, end, cfg_merged, verbose=args.verbose)
+    makeMovie(start, stop, cfg_merged, movie_name, args.movie_label, args.ATR_track_file, verbose=args.verbose)
 
     if args.verbose:
         print()
