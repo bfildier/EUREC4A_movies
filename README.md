@@ -23,7 +23,7 @@ All necessary data (satellite images, platform tracks, soundings data) is loaded
 ## Creating the images
 GOES16 satellite images are created with
 ```
-python ./scripts/make_movie_opendap.py -d 20200205 --start_time 10:00 --stop_time 12:10
+python ./scripts/make_images_opendap.py -d 20200205 --start_time 10:00 --stop_time 12:10
 ```
 ## Creating the movie
 Based on the images created above
