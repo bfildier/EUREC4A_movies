@@ -450,7 +450,7 @@ if __name__ == "__main__":
     parser.add_argument("-s", "--start_time", required=False, default="00:00", help="start time of movie in HHMM")
     parser.add_argument("-e", "--stop_time", required=False, default="23:59", help="end time of movie in HHMM")
     parser.add_argument("-v", "--verbose", required=False, default=True, help="Verbosity of script")
-    parser.add_argument("-l", "--movie_label", required=False, default=None, help="Movie title to be added below the date and in the movie name")
+    parser.add_argument("-l", "--movie_label", required=False, default='', help="Movie title to be added below the date and in the movie name")
     parser.add_argument("-t", "--ATR_track_file", required=False, default=None, help="Manual entry of track file to use, if different from the intake catalog")
     args = parser.parse_args()
     date_str = str(args.start_date)
@@ -474,7 +474,7 @@ if __name__ == "__main__":
     Nt = int((stop-start).seconds/delta_t)
 
     movie_name = start.strftime('%Y-%m-%d')
-    if args.movie_label is not None:
+    if args.movie_label != '':
         movie_name = "%s_%s"%(movie_name,args.movie_label)
 
     if args.verbose:
@@ -487,6 +487,7 @@ if __name__ == "__main__":
         print('Number of frames:', Nt)
         print('Start movie at %s' % start)
         print('Movie name: %s'%movie_name)
+        print('Movie label: %s'%args.movie_label)
         print()
 
     # make movie
